@@ -11,5 +11,6 @@ in {
       993
       1080
     ];
+    networking.firewall.allowedUDPPorts = lib.mkAfter [ ];
   };
 }

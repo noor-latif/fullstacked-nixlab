@@ -4,6 +4,7 @@ let
   certName = cfg.certName;
   legoStateDir = "/var/lib/mox-lego";
   moxTlsDir = "/var/lib/mox/config/tls";
+  lockFile = "/var/lib/mox-lego/.lock";
 
   # All domains that go into the SAN certificate.
   legoDomains = [ cfg.hostname ] ++ cfg.certExtraDomains;
@@ -13,6 +14,8 @@ let
   # backslash in the shell script when legoExtraFlags is empty.
   legoExtraFlags = lib.optionalString (cfg.acme.legoExtraFlags != [])
     " \\\n          ${lib.concatStringsSep " " cfg.acme.legoExtraFlags}";
+  dnsWaitFlag = lib.optionalString (cfg.dnsPropagationWait != "")
+    " \\\n          --dns.propagation-wait ${cfg.dnsPropagationWait}";
 in {
   config = lib.mkIf cfg.enable {
     systemd.services.mox-lego-cert = {
@@ -51,6 +54,9 @@ in {
       script = ''
         set -euo pipefail
 
+        exec ${pkgs.util-linux}/bin/flock -n ${lockFile} bash -s <<'LEGO_SCRIPT'
+        set -euo pipefail
+
         install -d -m 0700 ${legoStateDir}
         install -d -o root -g mox -m 0750 ${moxTlsDir}
       '' + lib.optionalString cfg.pangolin.enable ''
@@ -65,7 +71,7 @@ in {
           --env-file ${cfg.acme.envFile} \
           --path ${legoStateDir} \
           --cert.name ${certName} \
-          --key-type EC256${legoExtraFlags} \
+          --key-type EC256${legoExtraFlags}${dnsWaitFlag} \
           ${legoDomainArgs}
 
         install -o root -g mox -m 0640 \
@@ -104,6 +110,7 @@ in {
         if ${pkgs.systemd}/bin/systemctl is-active --quiet mox.service; then
           ${pkgs.systemd}/bin/systemctl reload-or-restart mox.service
         fi
+      LEGO_SCRIPT
       '';
     };
 

@@ -163,10 +163,26 @@ in {
       default = true;
       description = "Open mail ports in the firewall";
     };
+
+    forcePasswordChange = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Require account password change on first login via web interface";
+    };
+
+    dnsPropagationWait = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      example = "30s";
+      description = "Fixed wait time for DNS propagation before ACME validation (lego --dns.propagation-wait)";
+    };
   };
 
   # Apply safe defaults and validation when the user doesn't override.
   config = lib.mkIf cfg.enable {
+    warnings = lib.optional (cfg.hostname == null || cfg.domain == null || cfg.publicIps == [])
+      "services.mox-mail: hostname, domain, and publicIps must be set for a working mail server";
+
     assertions = [
       {
         assertion = !cfg.relay.enable || cfg.relay.host != "";
@@ -185,4 +201,6 @@ in {
     ./cert-renewal.nix
     ./systemd-service.nix
   ];
+
+  meta.maintainers = with lib.maintainers; [ ];
 }

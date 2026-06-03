@@ -199,6 +199,7 @@ Domains:
 ${indent 1}${cfg.domain}:
 ${indent 2}ClientSettingsDomain: ${cfg.hostname}
 ${indent 2}LocalpartCatchallSeparator: +
+${indent 2}Disabled: false
 
 ${indent 2}DKIM:
 ${indent 3}Selectors:
@@ -246,7 +247,7 @@ ${indent 4}MaxPower: 0.010000
 ${indent 4}TopWords: 10
 ${indent 4}IgnoreWords: 0.100000
 ${indent 4}RareWords: 2
-${indent 2}NoCustomPassword: true
+${indent 2}NoCustomPassword: ${if cfg.forcePasswordChange then "false" else "true"}
 
 ${relayRoute}
 
