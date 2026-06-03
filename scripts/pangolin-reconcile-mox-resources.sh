@@ -9,10 +9,18 @@ ENV_FILE="${ENV_FILE:-/home/noor/.config/codex-agents/fullstacked.env}"
 : "${PANGOLIN_ORG_ID:?missing PANGOLIN_ORG_ID}"
 : "${PANGOLIN_API_BASE:?missing PANGOLIN_API_BASE}"
 : "${MOX_DOMAIN:?missing MOX_DOMAIN}"
+: "${MOX_MAIL_HOST:?missing MOX_MAIL_HOST}"
 
 SITE_NICE_ID="${PANGOLIN_SITE_NICE_ID:-local-vps}"
 SITE_NAME="${PANGOLIN_SITE_NAME:-Local VPS}"
 HOST_GATEWAY="${PANGOLIN_HOST_GATEWAY:-172.18.0.1}"
+
+WEBMAIL_PORT="${PANGOLIN_WEBMAIL_PORT:-1080}"
+AUTOCONFIG_MTASTS_PORT="${PANGOLIN_AUTOCONFIG_MTASTS_PORT:-81}"
+
+RESOURCE_WEBMAIL_NAME="${PANGOLIN_RESOURCE_WEBMAIL_NAME:-Mox Webmail}"
+RESOURCE_AUTOCONFIG_NAME="${PANGOLIN_RESOURCE_AUTOCONFIG_NAME:-Mox Autoconfig}"
+RESOURCE_MTASTS_NAME="${PANGOLIN_RESOURCE_MTASTS_NAME:-Mox MTA STS}"
 
 api() {
   local method="$1" path="$2" data="${3:-}"
@@ -117,8 +125,8 @@ ensure_resource() {
   fi
 }
 
-ensure_resource "Mox Webmail" "mail" 1080 true
-ensure_resource "Mox MTA STS" "mta-sts" 81 false
-ensure_resource "Mox Autoconfig" "autoconfig" 81 false
+ensure_resource "$RESOURCE_WEBMAIL_NAME"   "mail"       "$WEBMAIL_PORT"            true
+ensure_resource "$RESOURCE_MTASTS_NAME"    "mta-sts"    "$AUTOCONFIG_MTASTS_PORT"  false
+ensure_resource "$RESOURCE_AUTOCONFIG_NAME" "autoconfig" "$AUTOCONFIG_MTASTS_PORT"  false
 
 echo "Pangolin Mox resources are reconciled."

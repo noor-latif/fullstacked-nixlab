@@ -38,7 +38,7 @@ spf_record_id() {
   records_for TXT "$MOX_DOMAIN" | jq -r '.result[] | select(.content | startswith("v=spf1")) | .id' | head -n 1
 }
 
-upsert_record() {
+upsert_dns_record() {
   local type="$1" name="$2" content="$3" ttl="${4:-300}" proxied="${5:-false}" priority="${6:-}"
   local id payload
 
@@ -48,11 +48,17 @@ upsert_record() {
   fi
 
   if [[ "$type" == "MX" ]]; then
-    payload="$(jq -cn --arg type "$type" --arg name "$name" --arg content "$content" --argjson ttl "$ttl" --argjson priority "$priority" '{type:$type,name:$name,content:$content,ttl:$ttl,priority:$priority}')"
+    payload="$(jq -cn --arg type "$type" --arg name "$name" --arg content "$content" \
+      --argjson ttl "$ttl" --argjson priority "$priority" \
+      '{type:$type,name:$name,content:$content,ttl:$ttl,priority:$priority}')"
   elif [[ "$type" == "A" || "$type" == "AAAA" || "$type" == "CNAME" ]]; then
-    payload="$(jq -cn --arg type "$type" --arg name "$name" --arg content "$content" --argjson ttl "$ttl" --argjson proxied "$proxied" '{type:$type,name:$name,content:$content,ttl:$ttl,proxied:$proxied}')"
+    payload="$(jq -cn --arg type "$type" --arg name "$name" --arg content "$content" \
+      --argjson ttl "$ttl" --argjson proxied "$proxied" \
+      '{type:$type,name:$name,content:$content,ttl:$ttl,proxied:$proxied}')"
   else
-    payload="$(jq -cn --arg type "$type" --arg name "$name" --arg content "$content" --argjson ttl "$ttl" '{type:$type,name:$name,content:$content,ttl:$ttl}')"
+    payload="$(jq -cn --arg type "$type" --arg name "$name" --arg content "$content" \
+      --argjson ttl "$ttl" \
+      '{type:$type,name:$name,content:$content,ttl:$ttl}')"
   fi
 
   if [[ -n "$id" ]]; then
@@ -118,27 +124,62 @@ delete_duplicate_spf() {
       done
 }
 
-upsert_record A "$MOX_DOMAIN" "$MOX_PUBLIC_IPV4" 300 false
-upsert_record A "$MOX_MAIL_HOST" "$MOX_PUBLIC_IPV4" 300 false
-upsert_record CNAME "mta-sts.${MOX_DOMAIN}" "$MOX_MAIL_HOST" 300 false
-upsert_record CNAME "autoconfig.${MOX_DOMAIN}" "$MOX_MAIL_HOST" 300 false
-upsert_record MX "$MOX_DOMAIN" "$MOX_MAIL_HOST" 300 false 10
-upsert_record TXT "_hostup.${MOX_DOMAIN}" "v=mc1 auth=h_MTQzLjE0LjUwLjEzMA==_5f2a2a918e34" 300
-upsert_record TXT "$MOX_DOMAIN" "v=spf1 include:spf.hostup.se mx ~all" 300
-delete_duplicate_spf
-upsert_record TXT "_dmarc.${MOX_DOMAIN}" "v=DMARC1; p=none; rua=mailto:dmarcreports@${MOX_DOMAIN}; adkim=s; aspf=s" 300
-upsert_record TXT "$MOX_MAIL_HOST" "v=spf1 a -all" 300
-upsert_record TXT "_mta-sts.${MOX_DOMAIN}" "v=STSv1; id=20260603T075354" 300
-upsert_record TXT "_smtp._tls.${MOX_DOMAIN}" "v=TLSRPTv1; rua=mailto:tlsreports@${MOX_DOMAIN}" 300
-upsert_record TXT "_smtp._tls.${MOX_MAIL_HOST}" "v=TLSRPTv1; rua=mailto:tlsreports@${MOX_MAIL_HOST}" 300
-upsert_record TXT "2026a._domainkey.${MOX_DOMAIN}" "v=DKIM1;h=sha256;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4R+Fr3iMMrgXuVIdSwAzQMnXRJHXKKBDU9u4zIwcvz08bbfwXf/+pUKEJ9dMF1Y1AWI0FdAp29LdxPdtOYp6sn+2tZVrSBASVLlPQ0fMqxLajKZVbvm6LNn67CIpbRvLBdx/KFAw4I3vwhFTgWvtV8r3IGKNifq7yIijDl3qHcf4ywIb+j8IRrAgzffjJVmxgtVgxerXWEzg5Clepmr+s8p/ZCRKHeRYluAzyHbqZTUpP+1OBBhtNSVuooXhEvKhduL2O/dWVLulpBFYoQj7gw2bdatn8oxp8VxCMbrWKJzPbnTsbPnmpSVGJATkI2wQ47BxxEsr+lqIW/lq4FE9rQIDAQAB" 300
-upsert_record TXT "2026b._domainkey.${MOX_DOMAIN}" "v=DKIM1;h=sha256;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxQrggzmL4Vc7QXadWAxWRZNoFUU+5Xj9LSR1uyiDNxE+CWcjok2zhGV8aLNcA68wQh4thH1hXfcHLNFRNfCrhsDrbddSrbsCBKI7UAcZui9FQY4VSZdXfIZL9Ot0Zy/iP0YWNdd82i5F8J87w+SE87vEKDathOIi4fTjiGi9sqWpKjdAc6T3hgI5F6UIhFFAedDG/U8j8+gGtC36gUIEv4plX/gL9vW2/18z/BfSjmOQSsw+zwqGOaebv9yxxiZZnZA5GaW6ySMUM6eB+SdS95abyJxcrNh4ZOMOI4oVpRr8vfa+9ViZmeeUWvay52YPWSzBi/w1vNzBDSB4i/DGTQIDAQAB" 300
-upsert_srv_record "_autodiscover._tcp.${MOX_DOMAIN}" "_autodiscover" "_tcp" "$MOX_DOMAIN" 0 1 443 "$MOX_MAIL_HOST" 300
-upsert_srv_record "_imaps._tcp.${MOX_DOMAIN}" "_imaps" "_tcp" "$MOX_DOMAIN" 0 1 993 "$MOX_MAIL_HOST" 300
-upsert_srv_record "_submissions._tcp.${MOX_DOMAIN}" "_submissions" "_tcp" "$MOX_DOMAIN" 0 1 465 "$MOX_MAIL_HOST" 300
-upsert_srv_record "_imap._tcp.${MOX_DOMAIN}" "_imap" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
-upsert_srv_record "_submission._tcp.${MOX_DOMAIN}" "_submission" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
-upsert_srv_record "_pop3._tcp.${MOX_DOMAIN}" "_pop3" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
-upsert_srv_record "_pop3s._tcp.${MOX_DOMAIN}" "_pop3s" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+# --- Base DNS records ---
 
-echo "Cloudflare base DNS records are ready."
+upsert_dns_record A   "$MOX_DOMAIN"   "$MOX_PUBLIC_IPV4" 300 false
+upsert_dns_record A   "$MOX_MAIL_HOST" "$MOX_PUBLIC_IPV4" 300 false
+upsert_dns_record MX  "$MOX_DOMAIN"   "$MOX_MAIL_HOST"    300 false 10
+
+# SPF
+MOX_SPF="${MOX_SPF:-v=spf1 mx ~all}"
+upsert_dns_record TXT "$MOX_DOMAIN"   "$MOX_SPF" 300
+delete_duplicate_spf
+upsert_dns_record TXT "$MOX_MAIL_HOST" "v=spf1 a -all" 300
+
+# DMARC
+MOX_DMARC="${MOX_DMARC:-v=DMARC1; p=none; rua=mailto:dmarcreports@${MOX_DOMAIN}}"
+upsert_dns_record TXT "_dmarc.${MOX_DOMAIN}" "$MOX_DMARC" 300
+
+# MTA-STS
+MOX_MTA_STS_ID="${MOX_MTA_STS_ID:-}"
+if [[ -n "$MOX_MTA_STS_ID" ]]; then
+  upsert_dns_record CNAME "mta-sts.${MOX_DOMAIN}" "$MOX_MAIL_HOST" 300 false
+  upsert_dns_record TXT   "_mta-sts.${MOX_DOMAIN}"  "v=STSv1; id=${MOX_MTA_STS_ID}" 300
+fi
+
+# TLSRPT
+upsert_dns_record TXT "_smtp._tls.${MOX_DOMAIN}"   "v=TLSRPTv1; rua=mailto:tlsreports@${MOX_DOMAIN}" 300
+upsert_dns_record TXT "_smtp._tls.${MOX_MAIL_HOST}" "v=TLSRPTv1; rua=mailto:tlsreports@${MOX_MAIL_HOST}" 300
+
+# Autoconfig
+MOX_AUTOCONFIG_CNAME="${MOX_AUTOCONFIG_CNAME:-$MOX_MAIL_HOST}"
+upsert_dns_record CNAME "autoconfig.${MOX_DOMAIN}" "$MOX_AUTOCONFIG_CNAME" 300 false
+
+# DKIM — one or more selectors, keyed by MOX_DKIM_SELECTOR_<N> / MOX_DKIM_KEY_<N>
+MOX_DKIM_COUNT="${MOX_DKIM_COUNT:-0}"
+for i in $(seq 1 "$MOX_DKIM_COUNT"); do
+  sel_var="MOX_DKIM_SELECTOR_${i}"
+  key_var="MOX_DKIM_KEY_${i}"
+  upsert_dns_record TXT \
+    "${!sel_var}._domainkey.${MOX_DOMAIN}" \
+    "v=DKIM1;h=sha256;p=${!key_var}" 300
+done
+
+# Hostup / external auth TXT (optional)
+MOX_HOSTUP_AUTH="${MOX_HOSTUP_AUTH:-}"
+if [[ -n "$MOX_HOSTUP_AUTH" ]]; then
+  upsert_dns_record TXT "_hostup.${MOX_DOMAIN}" "$MOX_HOSTUP_AUTH" 300
+fi
+
+# Autodiscovery SRV records
+upsert_srv_record "_autodiscover._tcp.${MOX_DOMAIN}" "_autodiscover" "_tcp" "$MOX_DOMAIN" 0 1 443 "$MOX_MAIL_HOST" 300
+upsert_srv_record "_imaps._tcp.${MOX_DOMAIN}"       "_imaps"         "_tcp" "$MOX_DOMAIN" 0 1 993 "$MOX_MAIL_HOST" 300
+upsert_srv_record "_submissions._tcp.${MOX_DOMAIN}"  "_submissions"   "_tcp" "$MOX_DOMAIN" 0 1 465 "$MOX_MAIL_HOST" 300
+
+# Disable unencrypted services
+upsert_srv_record "_imap._tcp.${MOX_DOMAIN}"       "_imap"       "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+upsert_srv_record "_submission._tcp.${MOX_DOMAIN}"  "_submission" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+upsert_srv_record "_pop3._tcp.${MOX_DOMAIN}"        "_pop3"       "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+upsert_srv_record "_pop3s._tcp.${MOX_DOMAIN}"       "_pop3s"      "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+
+echo "Cloudflare DNS records are ready."
