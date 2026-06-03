@@ -60,6 +60,8 @@ See `modules/mox/default.nix` for the full option schema. Key options:
 | `services.mox-mail.relay.enable` | bool | no | Enable SMTP relay for outbound mail |
 | `services.mox-mail.relay.host` | str | conditional | Relay hostname (required if relay enabled) |
 | `services.mox-mail.pangolin.enable` | bool | no | Enable Pangolin/Traefik cert copying |
+| `services.mox-mail.forcePasswordChange` | bool | no | Require password change on first login (default: `false`) |
+| `services.mox-mail.dnsPropagationWait` | str | no | Fixed wait for DNS propagation before ACME validation (e.g. `"30s"`) |
 
 ## Architecture
 
@@ -124,6 +126,28 @@ The `dkimKeyType` option (default `"rsa2048"`) controls the key type portion of 
 ## Firewall
 
 The module opens TCP ports 25, 465, 993, and 1080 via `lib.mkAfter`. Port 81 (MTA-STS/autoconfig) is internal only and should be reverse proxied, not exposed directly.
+
+## Backup and Maintenance
+
+Back up before upgrades:
+
+```sh
+sudo -u mox mox backup /path/to/backup --config /var/lib/mox/config/mox.conf
+```
+
+After a backup restore, run:
+
+```sh
+sudo -u mox mox verifydata /path/to/restored/data
+```
+
+For each account with changed mailbox state after restore, bump UID validity to force IMAP clients to re-sync:
+
+```sh
+sudo -u mox mox bumpuidvalidity --config /var/lib/mox/config/mox.conf ACCOUNT_NAME
+```
+
+Mox also exposes Prometheus metrics at the `/metrics` endpoint on the webmail/admin listener (port 1080).
 
 ## License
 
