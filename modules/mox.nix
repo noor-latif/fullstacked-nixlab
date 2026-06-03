@@ -137,7 +137,6 @@ in {
 
   networking.firewall.allowedTCPPorts = lib.mkAfter [
     25
-    81
     465
     587
     993
