@@ -251,6 +251,6 @@ Remaining:
 
 Update this file after DNS changes, Mox config changes, Pangolin resource/site/target ID changes, TLS strategy changes, script changes, or NixOS module structure changes.
 
-Never store: API token values, sudo passwords, Mox admin passwords, box passwords, TLS private key contents. Store paths and variable names instead.
+Never store: API token values, sudo passwords, Mox admin passwords, mailbox passwords, TLS private key contents. Store paths and variable names instead.
 
 Secrets location: `/home/noor/.config/codex-agents/fullstacked.env` (permissions: 600, parent: 700).
