@@ -8,7 +8,7 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ../modules/mox.nix
+      ../modules/mox
     ];
 
   # Bootloader.
@@ -120,6 +120,8 @@
   };
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  services.mox-mail.enable = true;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
