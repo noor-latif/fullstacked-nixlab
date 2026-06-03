@@ -1,4 +1,5 @@
 { pkgs, config, lib, ... }:
+# Mox systemd service — hardened, auto-restart, wants mox-seed-config first.
 let
   cfg = config.services.mox-mail;
 in {

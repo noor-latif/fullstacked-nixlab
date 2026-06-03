@@ -1,13 +1,16 @@
 { pkgs, config, lib, ... }:
+# Generates mox.conf and domains.conf from services.mox-mail options.
+# Runs once on first boot via mox-seed-config.service (ConditionPathExists).
+# After that, Mox's web admin UI owns these files — do not overwrite.
 let
   cfg = config.services.mox-mail;
 
+  # sconf format requires tabs for indentation, not spaces.
   tab = "\t";
 
   indent = n: builtins.concatStringsSep "" (builtins.genList (_: tab) n);
 
-  sconfList = items: builtins.concatStringsSep "\n" (map (i: "${indent 4}- ${i}") items);
-
+  # Relay transport block — only included when cfg.relay.enable is true.
   relayTransport = lib.optionalString cfg.relay.enable ''
 Transports:
 ${indent 1}${cfg.relay.transportName}:

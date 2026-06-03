@@ -45,15 +45,17 @@ See `modules/mox/default.nix` for the full option schema. Key options:
 | `services.mox-mail.domain` | str | yes | Primary mail domain, e.g. `example.com` |
 | `services.mox-mail.publicIps` | list | yes | Public IPv4/IPv6 addresses |
 | `services.mox-mail.adminAccount` | str | yes | Admin account name for postmaster, DMARC, TLSRPT |
+| `services.mox-mail.certName` | str | no | Cert file prefix (default: `"mail"`) |
+| `services.mox-mail.certExtraDomains` | list | no | Additional SAN domains on the TLS cert |
+| `services.mox-mail.internalIps` | list | no | IPs for internal HTTP listener (default: `127.0.0.1`, `::1`) |
 | `services.mox-mail.acme.email` | str | yes | Email for Let's Encrypt registration |
-| `services.mox-mail.acme.envFile` | str | no | Path to DNS provider credentials file |
+| `services.mox-mail.acme.envFile` | str | no | Path to DNS provider credentials file (default: `/var/lib/acme/cloudflare.env`) |
 | `services.mox-mail.acme.dnsProvider` | str | no | Lego DNS provider (default: `cloudflare`) |
 | `services.mox-mail.acme.legoExtraFlags` | list | no | Extra flags for lego, e.g. `["--ipv4only"]` |
 | `services.mox-mail.dkimSelectors` | list | yes | DKIM selector names |
 | `services.mox-mail.relay.enable` | bool | no | Enable SMTP relay for outbound mail |
-| `services.mox-mail.relay.host` | str | no | Relay hostname (required if relay enabled) |
+| `services.mox-mail.relay.host` | str | conditional | Relay hostname (required if relay enabled) |
 | `services.mox-mail.pangolin.enable` | bool | no | Enable Pangolin/Traefik cert copying |
-| `services.mox-mail.certExtraDomains` | list | no | Additional SAN domains for the TLS cert |
 
 ## Architecture
 

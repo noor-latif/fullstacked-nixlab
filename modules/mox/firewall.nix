@@ -1,4 +1,6 @@
 { pkgs, config, lib, ... }:
+# Opens SMTP/IMAP/web ports via lib.mkAfter so they're appended after any
+# user-defined firewall rules in configuration.nix.
 let
   cfg = config.services.mox-mail;
 in {

@@ -1,6 +1,12 @@
-# Edit this file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running 'nixos-help').
+# This is an EXAMPLE configuration for running a Mox mail server on NixOS.
+# Copy this file to configuration.nix and edit the values marked CHANGEME.
+#
+# Usage:
+#   cp nixos/configuration.nix.example nixos/configuration.nix
+#   $EDITOR nixos/configuration.nix
+#   sudo nixos-rebuild switch --flake '.#nixos'
+#
+# See README.md for full documentation.
 
 { config, pkgs, ... }:
 
@@ -10,6 +16,7 @@
       ../modules/mox
     ];
 
+  # Bootloader — adjust for your hardware.
   boot.loader.grub.enable = true;
   boot.loader.grub.device = "/dev/sda";
   boot.loader.grub.useOSProber = true;
@@ -18,29 +25,28 @@
   networking.hostName = "CHANGEME";
   networking.networkmanager.enable = true;
 
-  time.timeZone = "Europe/Stockholm";
+  # Timezone and locale.
+  time.timeZone = "CHANGEME";  # e.g. "Europe/Stockholm", "America/New_York"
 
   i18n.defaultLocale = "en_US.UTF-8";
 
   i18n.extraLocaleSettings = {
-    LC_ADDRESS = "sv_SE.UTF-8";
-    LC_IDENTIFICATION = "sv_SE.UTF-8";
-    LC_MEASUREMENT = "sv_SE.UTF-8";
-    LC_MONETARY = "sv_SE.UTF-8";
-    LC_NAME = "sv_SE.UTF-8";
-    LC_NUMERIC = "sv_SE.UTF-8";
-    LC_PAPER = "sv_SE.UTF-8";
-    LC_TELEPHONE = "sv_SE.UTF-8";
-    LC_TIME = "sv_SE.UTF-8";
+    LC_ADDRESS = "en_US.UTF-8";
+    LC_IDENTIFICATION = "en_US.UTF-8";
+    LC_MEASUREMENT = "en_US.UTF-8";
+    LC_MONETARY = "en_US.UTF-8";
+    LC_NAME = "en_US.UTF-8";
+    LC_NUMERIC = "en_US.UTF-8";
+    LC_PAPER = "en_US.UTF-8";
+    LC_TELEPHONE = "en_US.UTF-8";
+    LC_TIME = "en_US.UTF-8";
   };
 
-  services.xserver.xkb = {
-    layout = "se";
-    variant = "";
-  };
+  # Keyboard layout.
+  # services.xserver.xkb.layout = "us";
+  # console.keyMap = "us";
 
-  console.keyMap = "sv-latin1";
-
+  # User account.
   users.users."CHANGEME" = {
     isNormalUser = true;
     description = "Your Name";
@@ -57,11 +63,14 @@
   ];
 
   environment.shellAliases = {
-    apply = "/home/CHANGEME/dev/mox-nixos/scripts/apply-nixos.sh";
+    # Convenience alias — adjust path to your clone location.
+    apply = "/home/CHANGEME/path/to/flake/scripts/apply-nixos.sh";
   };
 
+  # QEMU guest agent (remove if bare-metal).
   services.qemuGuest.enable = true;
 
+  # SSH: key-only, no root login.
   services.openssh = {
     enable = true;
     openFirewall = true;
@@ -77,9 +86,15 @@
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 80 443 ];
+    # WireGuard (optional, adjust or remove).
     allowedUDPPorts = [ 51820 21820 ];
   };
 
+  # Require password for sudo. For non-interactive agent use, add:
+  #   security.sudo.extraConfig = ''
+  #     Defaults timestamp_type=global
+  #     Defaults timestamp_timeout=20
+  #   '';
   security.sudo.wheelNeedsPassword = true;
 
   services.fail2ban.enable = true;
@@ -92,42 +107,43 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   # --- Mox mail server ---
-  # See README.md for full documentation.
+  # See README.md for full documentation of all options.
   services.mox-mail = {
     enable = true;
 
-    # REQUIRED: set these to your values
-    hostname = "mail.example.com";
-    domain = "example.com";
-    publicIps = [ "203.0.113.1" ];
-    adminAccount = "admin";
+    # REQUIRED — set these to your values.
+    hostname = "mail.example.com";          # e.g. mail.example.com
+    domain = "example.com";                # e.g. example.com
+    publicIps = [ "CHANGEME" ];            # e.g. [ "203.0.113.1" ]
+    adminAccount = "CHANGEME";             # Mox admin username (postmaster, DMARC, TLSRPT)
 
-    # Certificate settings
-    certName = "mail";
-    certExtraDomains = [
-      "mta-sts.example.com"
+    # Certificate settings.
+    certName = "mail";                     # Cert file prefix
+    certExtraDomains = [                    # Additional SAN domains on the cert.
+      "mta-sts.example.com"                # Remove or adjust as needed.
       "autoconfig.example.com"
     ];
 
-    # Internal listener IPs. Add Docker bridge IP if using Pangolin/Traefik.
+    # Internal listener IPs.
+    # Add your Docker bridge IP (e.g. "172.18.0.1") if using Pangolin/Traefik.
     internalIps = [ "127.0.0.1" "::1" ];
 
     acme = {
-      email = "admin@example.com";
-      envFile = "/var/lib/acme/cloudflare.env";
-      # Extra lego flags. Add "--ipv4only" if IPv6 causes LE failures.
+      email = "admin@example.com";         # Let's Encrypt account email
+      envFile = "/var/lib/acme/cloudflare.env";  # DNS API credentials
+      # Extra lego flags. Add "--ipv4only" if IPv6 causes LE reachability issues.
       legoExtraFlags = [];
     };
 
-    # SMTP relay for outbound mail (optional)
+    # SMTP relay for outbound mail (optional).
     relay = {
       enable = false;
-      host = "relay.example.com";
+      # host = "relay.example.com";        # Uncomment and set if enabling relay
     };
 
-    dkimSelectors = [ "2026a" ];
+    dkimSelectors = [ "CHANGEME" ];        # e.g. [ "2026a" ]
 
-    # Pangolin/Traefik integration (optional)
+    # Pangolin/Traefik reverse proxy integration (optional).
     pangolin.enable = false;
   };
 

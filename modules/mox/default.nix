@@ -2,6 +2,10 @@
 let
   cfg = config.services.mox-mail;
 in {
+  # Mox mail server NixOS module.
+  # Configure via `services.mox-mail.*` options.
+  # Required: hostname, domain, publicIps, adminAccount, acme.email, dkimSelectors.
+
   options.services.mox-mail = {
     enable = lib.mkEnableOption "Mox mail server";
 
@@ -150,6 +154,7 @@ in {
     };
   };
 
+  # Apply safe defaults when the user doesn't override.
   config = lib.mkIf cfg.enable {
     services.mox-mail.pangolin.enable = lib.mkDefault false;
     services.mox-mail.relay.enable = lib.mkDefault false;

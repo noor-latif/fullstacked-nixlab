@@ -5,9 +5,14 @@ let
   legoStateDir = "/var/lib/mox-lego";
   moxTlsDir = "/var/lib/mox/config/tls";
 
+  # All domains that go into the SAN certificate.
   legoDomains = [ cfg.hostname ] ++ cfg.certExtraDomains;
-  legoFlags = lib.concatStringsSep " " cfg.acme.legoExtraFlags;
   legoDomainArgs = lib.concatMapStringsSep " " (d: "-d ${d}") legoDomains;
+
+  # Only emit extra flags (with continuation) if any are set. Avoids a dangling
+  # backslash in the shell script when legoExtraFlags is empty.
+  legoExtraFlags = lib.optionalString (cfg.acme.legoExtraFlags != [])
+    " \\\n          ${lib.concatStringsSep " " cfg.acme.legoExtraFlags}";
 in {
   config = lib.mkIf cfg.enable {
     systemd.services.mox-lego-cert = {
@@ -60,8 +65,7 @@ in {
           --env-file ${cfg.acme.envFile} \
           --path ${legoStateDir} \
           --cert.name ${certName} \
-          --key-type EC256 \
-          ${legoFlags} \
+          --key-type EC256${legoExtraFlags} \
           ${legoDomainArgs}
 
         install -o root -g mox -m 0640 \
