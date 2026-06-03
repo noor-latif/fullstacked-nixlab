@@ -64,6 +64,48 @@ upsert_record() {
   fi
 }
 
+upsert_srv_record() {
+  local name="$1" service="$2" proto="$3" record_name="$4" priority="$5" weight="$6" port="$7" target="$8" ttl="${9:-300}"
+  local id payload
+
+  id="$(record_id_by_name SRV "$name")"
+  payload="$(
+    jq -cn \
+      --arg type SRV \
+      --arg name "$name" \
+      --arg service "$service" \
+      --arg proto "$proto" \
+      --arg record_name "$record_name" \
+      --arg target "$target" \
+      --argjson ttl "$ttl" \
+      --argjson priority "$priority" \
+      --argjson weight "$weight" \
+      --argjson port "$port" \
+      '{
+        type:$type,
+        name:$name,
+        ttl:$ttl,
+        data:{
+          service:$service,
+          proto:$proto,
+          name:$record_name,
+          priority:$priority,
+          weight:$weight,
+          port:$port,
+          target:$target
+        }
+      }'
+  )"
+
+  if [[ -n "$id" ]]; then
+    cf -X PUT "${API}/zones/${zone_id}/dns_records/${id}" --data "$payload" >/dev/null
+    echo "updated SRV ${name}"
+  else
+    cf -X POST "${API}/zones/${zone_id}/dns_records" --data "$payload" >/dev/null
+    echo "created SRV ${name}"
+  fi
+}
+
 delete_duplicate_spf() {
   local keep_id
   keep_id="$(spf_record_id)"
@@ -85,5 +127,18 @@ upsert_record TXT "_hostup.${MOX_DOMAIN}" "v=mc1 auth=h_MTQzLjE0LjUwLjEzMA==_5f2
 upsert_record TXT "$MOX_DOMAIN" "v=spf1 include:spf.hostup.se mx ~all" 300
 delete_duplicate_spf
 upsert_record TXT "_dmarc.${MOX_DOMAIN}" "v=DMARC1; p=none; rua=mailto:dmarcreports@${MOX_DOMAIN}; adkim=s; aspf=s" 300
+upsert_record TXT "$MOX_MAIL_HOST" "v=spf1 a -all" 300
+upsert_record TXT "_mta-sts.${MOX_DOMAIN}" "v=STSv1; id=20260603T075354" 300
+upsert_record TXT "_smtp._tls.${MOX_DOMAIN}" "v=TLSRPTv1; rua=mailto:tlsreports@${MOX_DOMAIN}" 300
+upsert_record TXT "_smtp._tls.${MOX_MAIL_HOST}" "v=TLSRPTv1; rua=mailto:tlsreports@${MOX_MAIL_HOST}" 300
+upsert_record TXT "2026a._domainkey.${MOX_DOMAIN}" "v=DKIM1;h=sha256;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4R+Fr3iMMrgXuVIdSwAzQMnXRJHXKKBDU9u4zIwcvz08bbfwXf/+pUKEJ9dMF1Y1AWI0FdAp29LdxPdtOYp6sn+2tZVrSBASVLlPQ0fMqxLajKZVbvm6LNn67CIpbRvLBdx/KFAw4I3vwhFTgWvtV8r3IGKNifq7yIijDl3qHcf4ywIb+j8IRrAgzffjJVmxgtVgxerXWEzg5Clepmr+s8p/ZCRKHeRYluAzyHbqZTUpP+1OBBhtNSVuooXhEvKhduL2O/dWVLulpBFYoQj7gw2bdatn8oxp8VxCMbrWKJzPbnTsbPnmpSVGJATkI2wQ47BxxEsr+lqIW/lq4FE9rQIDAQAB" 300
+upsert_record TXT "2026b._domainkey.${MOX_DOMAIN}" "v=DKIM1;h=sha256;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxQrggzmL4Vc7QXadWAxWRZNoFUU+5Xj9LSR1uyiDNxE+CWcjok2zhGV8aLNcA68wQh4thH1hXfcHLNFRNfCrhsDrbddSrbsCBKI7UAcZui9FQY4VSZdXfIZL9Ot0Zy/iP0YWNdd82i5F8J87w+SE87vEKDathOIi4fTjiGi9sqWpKjdAc6T3hgI5F6UIhFFAedDG/U8j8+gGtC36gUIEv4plX/gL9vW2/18z/BfSjmOQSsw+zwqGOaebv9yxxiZZnZA5GaW6ySMUM6eB+SdS95abyJxcrNh4ZOMOI4oVpRr8vfa+9ViZmeeUWvay52YPWSzBi/w1vNzBDSB4i/DGTQIDAQAB" 300
+upsert_srv_record "_autodiscover._tcp.${MOX_DOMAIN}" "_autodiscover" "_tcp" "$MOX_DOMAIN" 0 1 443 "$MOX_MAIL_HOST" 300
+upsert_srv_record "_imaps._tcp.${MOX_DOMAIN}" "_imaps" "_tcp" "$MOX_DOMAIN" 0 1 993 "$MOX_MAIL_HOST" 300
+upsert_srv_record "_submissions._tcp.${MOX_DOMAIN}" "_submissions" "_tcp" "$MOX_DOMAIN" 0 1 465 "$MOX_MAIL_HOST" 300
+upsert_srv_record "_imap._tcp.${MOX_DOMAIN}" "_imap" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+upsert_srv_record "_submission._tcp.${MOX_DOMAIN}" "_submission" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+upsert_srv_record "_pop3._tcp.${MOX_DOMAIN}" "_pop3" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
+upsert_srv_record "_pop3s._tcp.${MOX_DOMAIN}" "_pop3s" "_tcp" "$MOX_DOMAIN" 0 0 0 "." 300
 
 echo "Cloudflare base DNS records are ready."

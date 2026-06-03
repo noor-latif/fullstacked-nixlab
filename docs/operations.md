@@ -42,6 +42,10 @@ Apply:
 scripts/apply-nixos.sh
 ```
 
+The apply script builds the flake as the current user and only uses `sudo` for
+the final `switch-to-configuration` step. Avoid running the whole flake
+evaluation with `sudo`, because root may reject a user-owned git checkout.
+
 After the first flake switch, new shells also have:
 
 ```sh

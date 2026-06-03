@@ -77,7 +77,7 @@
   ];
 
   environment.shellAliases = {
-    apply = "sudo nixos-rebuild switch --flake /home/noor/dev/pangolin-mailserver-vps#nixos";
+    apply = "/home/noor/dev/pangolin-mailserver-vps/scripts/apply-nixos.sh";
   };
 
   # Some programs need SUID wrappers, can be configured further or are

@@ -63,3 +63,8 @@ tcp:
     pp-transport-v2:
       proxyProtocol:
         version: 2
+
+tls:
+  certificates:
+    - certFile: /etc/traefik/certs/fullstacked-mail-chain.pem
+      keyFile: /etc/traefik/certs/fullstacked-mail-key.pem
