@@ -14,7 +14,7 @@ Use this skill for work on Noor's mail setup:
 - Mail server: Mox via NixOS module `modules/mox/`
 - Outbound relay: Hostup `relay.hostup.se:587` STARTTLS, no auth (IP whitelist)
 
-Do not store or repeat secrets. Existing secrets for this setup are stored in `/home/noor/.config/codex-agents/fullstacked.env`; source that file instead of asking again if it exists.
+Do not store or repeat secrets. Existing secrets for this setup are stored in `/home/noor/.config/opencode/fullstacked.env`; source that file instead of asking again if it exists.
 
 ## Machine
 
@@ -154,7 +154,7 @@ Mox config test: `config OK`
 
 ## Pangolin API & Resources
 
-API enabled at 127.0.0.1:3003. Token in `/home/noor/.config/codex-agents/fullstacked.env` as `PANGOLIN_API_TOKEN`.
+API enabled at 127.0.0.1:3003. Token in `/home/noor/.config/opencode/fullstacked.env` as `PANGOLIN_API_TOKEN`.
 
 Organization: `fullstacked`
 Site: `1` (niceId: `local-vps`, name: `Local VPS`, type: local, approved)
@@ -188,7 +188,7 @@ For detailed cert architecture and troubleshooting, see [references/certificates
 
 ## Cloudflare DNS
 
-Managed via API token (`Zone:Zone:Read`, `Zone:DNS:Edit` on `fullstacked.se`). All mail records must be DNS-only (not proxied). API token in `/home/noor/.config/codex-agents/fullstacked.env` as `CLOUDFLARE_API_TOKEN`.
+Managed via API token (`Zone:Zone:Read`, `Zone:DNS:Edit` on `fullstacked.se`). All mail records must be DNS-only (not proxied). API token in `/home/noor/.config/opencode/fullstacked.env` as `CLOUDFLARE_API_TOKEN`.
 
 DNS records: A (apex, mail), MX, SPF, Hostup auth TXT, DKIM TXT (2026a, 2026b), DMARC, MTA-STS policy TXT, TLSRPT TXT, SRV autoconfig records.
 
@@ -216,7 +216,7 @@ sudo -u mox sh -c 'cd /var/lib/mox && mox -config config/mox.conf config dnschec
 Pangolin API:
 
 ```sh
-. /home/noor/.config/codex-agents/fullstacked.env
+. /home/noor/.config/opencode/fullstacked.env
 curl -sS -H "Authorization: Bearer $PANGOLIN_API_TOKEN" http://localhost:3003/v1/
 curl -sS -H "Authorization: Bearer $PANGOLIN_API_TOKEN" 'http://localhost:3003/v1/org/fullstacked/resources?pageSize=100'
 ```
@@ -253,4 +253,4 @@ Update this file after DNS changes, Mox config changes, Pangolin resource/site/t
 
 Never store: API token values, sudo passwords, Mox admin passwords, mailbox passwords, TLS private key contents. Store paths and variable names instead.
 
-Secrets location: `/home/noor/.config/codex-agents/fullstacked.env` (permissions: 600, parent: 700).
+Secrets location: `/home/noor/.config/opencode/fullstacked.env` (permissions: 600, parent: 700).

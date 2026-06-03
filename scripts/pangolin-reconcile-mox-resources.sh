@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ENV_FILE="${ENV_FILE:-/home/noor/.config/codex-agents/fullstacked.env}"
+ENV_FILE="${ENV_FILE:-$HOME/.config/opencode/fullstacked.env}"
 # shellcheck disable=SC1090
 . "$ENV_FILE"
+
+# Env vars set by this script (with defaults):
+#   PANGOLIN_SITE_NICE_ID     — site identifier in Pangolin (default: local-vps)
+#   PANGOLIN_SITE_NAME        — site display name (default: Local VPS)
+#   PANGOLIN_HOST_GATEWAY     — Docker bridge IP for target routing (default: 172.18.0.1)
+#   PANGOLIN_WEBMAIL_PORT, PANGOLIN_AUTOCONFIG_MTASTS_PORT — target ports
+#   PANGOLIN_RESOURCE_*_NAME  — Pangolin resource display names
 
 : "${PANGOLIN_API_TOKEN:?missing PANGOLIN_API_TOKEN}"
 : "${PANGOLIN_ORG_ID:?missing PANGOLIN_ORG_ID}"

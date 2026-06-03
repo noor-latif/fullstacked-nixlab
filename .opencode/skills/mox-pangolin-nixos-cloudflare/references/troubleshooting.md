@@ -3,7 +3,7 @@
 ## First Checks
 
 ```sh
-. /home/noor/.config/codex-agents/fullstacked.env
+. /home/noor/.config/opencode/fullstacked.env
 systemctl status mox --no-pager
 sudo -u mox sh -c 'cd /var/lib/mox && mox -config config/mox.conf config test'
 ss -ltnp | grep -E ':(25|465|993|81|1080) '
@@ -130,7 +130,7 @@ Run reconcile script:
 Or check manually:
 
 ```sh
-. /home/noor/.config/codex-agents/fullstacked.env
+. /home/noor/.config/opencode/fullstacked.env
 curl -sS -H "Authorization: Bearer $PANGOLIN_API_TOKEN" \
   'http://localhost:3003/v1/org/fullstacked/resources?pageSize=100' | jq '.data.resources'
 ```
@@ -148,7 +148,7 @@ Run DNS script:
 Verify:
 
 ```sh
-. /home/noor/.config/codex-agents/fullstacked.env
+. /home/noor/.config/opencode/fullstacked.env
 curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
   "https://api.cloudflare.com/client/v4/zones?name=fullstacked.se" | jq '.result[0].id'
 ```
