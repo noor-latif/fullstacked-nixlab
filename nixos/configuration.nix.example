@@ -108,6 +108,11 @@
 
   # --- Mox mail server ---
   # See README.md for full documentation of all options.
+  #
+  # DNS prerequisites (add before switching MX):
+  #   CAA records: 0 issue "letsencrypt.org" on domain, mail, mta-sts, autoconfig
+  #   PTR/rDNS: your IP -> mail hostname (set at VPS provider)
+  #   DNSSEC: enable at your registrar
   services.mox-mail = {
     enable = true;
 

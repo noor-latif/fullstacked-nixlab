@@ -127,6 +127,19 @@ The `dkimKeyType` option (default `"rsa2048"`) controls the key type portion of 
 
 The module opens TCP ports 25, 465, 993, and 1080 via `lib.mkAfter`. Port 81 (MTA-STS/autoconfig) is internal only and should be reverse proxied, not exposed directly.
 
+## CAA Records
+
+Add Certificate Authority Authorization records to restrict which CAs can issue certificates for your domain:
+
+```
+example.com              CAA 0 issue "letsencrypt.org"
+mail.example.com         CAA 0 issue "letsencrypt.org"
+mta-sts.example.com      CAA 0 issue "letsencrypt.org"
+autoconfig.example.com   CAA 0 issue "letsencrypt.org"
+```
+
+The cloudflare-upsert script includes CAA record management.
+
 ## Backup and Maintenance
 
 Back up before upgrades:
