@@ -1,11 +1,13 @@
 { pkgs, config, lib, ... }:
 let
   cfg = config.services.mox-mail;
-  certName = "fullstacked-mail";
+  certName = cfg.certName;
   legoStateDir = "/var/lib/mox-lego";
   moxTlsDir = "/var/lib/mox/config/tls";
 
-  subdomains = [ "mta-sts.${cfg.domain}" "autoconfig.${cfg.domain}" ];
+  legoDomains = [ cfg.hostname ] ++ cfg.certExtraDomains;
+  legoFlags = lib.concatStringsSep " " cfg.acme.legoExtraFlags;
+  legoDomainArgs = lib.concatMapStringsSep " " (d: "-d ${d}") legoDomains;
 in {
   config = lib.mkIf cfg.enable {
     systemd.services.mox-lego-cert = {
@@ -52,17 +54,15 @@ in {
 
         ${pkgs.lego}/bin/lego run \
           --server letsencrypt \
-          --ipv4only \
-          --ari-disable \
           --accept-tos \
           --email ${cfg.acme.email} \
-          --dns cloudflare \
-          --env-file ${cfg.acme.cloudflareEnvFile} \
+          --dns ${cfg.acme.dnsProvider} \
+          --env-file ${cfg.acme.envFile} \
           --path ${legoStateDir} \
           --cert.name ${certName} \
           --key-type EC256 \
-          -d ${cfg.hostname} \
-          ${builtins.concatStringsSep " \\\n          " (map (d: "-d ${d}") subdomains)}
+          ${legoFlags} \
+          ${legoDomainArgs}
 
         install -o root -g mox -m 0640 \
           ${legoStateDir}/certificates/${certName}.crt \

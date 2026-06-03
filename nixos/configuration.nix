@@ -125,7 +125,27 @@
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  services.mox-mail.enable = true;
+  services.mox-mail = {
+    enable = true;
+    hostname = "mail.fullstacked.se";
+    domain = "fullstacked.se";
+    publicIps = [ "143.14.50.130" ];
+    adminAccount = "noor";
+    certName = "fullstacked-mail";
+    certExtraDomains = [ "mta-sts.fullstacked.se" "autoconfig.fullstacked.se" ];
+    internalIps = [ "127.0.0.1" "172.18.0.1" "::1" ];
+    acme = {
+      email = "noor@latif.se";
+      envFile = "/var/lib/acme/fullstacked-cloudflare.env";
+      legoExtraFlags = [ "--ipv4only" "--ari-disable" ];
+    };
+    relay = {
+      enable = true;
+      host = "relay.hostup.se";
+    };
+    dkimSelectors = [ "2026a" "2026b" ];
+    pangolin.enable = true;
+  };
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];

@@ -1,0 +1,135 @@
+# Edit this file to define what should be installed on
+# your system.  Help is available in the configuration.nix(5) man page
+# and in the NixOS manual (accessible by running 'nixos-help').
+
+{ config, pkgs, ... }:
+
+{
+  imports =
+    [ ./hardware-configuration.nix
+      ../modules/mox
+    ];
+
+  boot.loader.grub.enable = true;
+  boot.loader.grub.device = "/dev/sda";
+  boot.loader.grub.useOSProber = true;
+  boot.loader.grub.fsIdentifier = "provided";
+
+  networking.hostName = "CHANGEME";
+  networking.networkmanager.enable = true;
+
+  time.timeZone = "Europe/Stockholm";
+
+  i18n.defaultLocale = "en_US.UTF-8";
+
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "sv_SE.UTF-8";
+    LC_IDENTIFICATION = "sv_SE.UTF-8";
+    LC_MEASUREMENT = "sv_SE.UTF-8";
+    LC_MONETARY = "sv_SE.UTF-8";
+    LC_NAME = "sv_SE.UTF-8";
+    LC_NUMERIC = "sv_SE.UTF-8";
+    LC_PAPER = "sv_SE.UTF-8";
+    LC_TELEPHONE = "sv_SE.UTF-8";
+    LC_TIME = "sv_SE.UTF-8";
+  };
+
+  services.xserver.xkb = {
+    layout = "se";
+    variant = "";
+  };
+
+  console.keyMap = "sv-latin1";
+
+  users.users."CHANGEME" = {
+    isNormalUser = true;
+    description = "Your Name";
+    extraGroups = [ "docker" "networkmanager" "wheel" ];
+    openssh.authorizedKeys.keys = [
+      # Add your SSH public keys here
+      "ssh-ed25519 AAAA..."
+    ];
+    packages = with pkgs; [];
+  };
+
+  environment.systemPackages = with pkgs; [
+    docker-compose
+  ];
+
+  environment.shellAliases = {
+    apply = "/home/CHANGEME/dev/mox-nixos/scripts/apply-nixos.sh";
+  };
+
+  services.qemuGuest.enable = true;
+
+  services.openssh = {
+    enable = true;
+    openFirewall = true;
+    settings = {
+      AllowUsers = [ "CHANGEME" ];
+      KbdInteractiveAuthentication = false;
+      PasswordAuthentication = false;
+      PermitRootLogin = "no";
+      X11Forwarding = false;
+    };
+  };
+
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 80 443 ];
+    allowedUDPPorts = [ 51820 21820 ];
+  };
+
+  security.sudo.wheelNeedsPassword = true;
+
+  services.fail2ban.enable = true;
+
+  virtualisation.docker = {
+    enable = true;
+    autoPrune.enable = true;
+  };
+
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  # --- Mox mail server ---
+  # See README.md for full documentation.
+  services.mox-mail = {
+    enable = true;
+
+    # REQUIRED: set these to your values
+    hostname = "mail.example.com";
+    domain = "example.com";
+    publicIps = [ "203.0.113.1" ];
+    adminAccount = "admin";
+
+    # Certificate settings
+    certName = "mail";
+    certExtraDomains = [
+      "mta-sts.example.com"
+      "autoconfig.example.com"
+    ];
+
+    # Internal listener IPs. Add Docker bridge IP if using Pangolin/Traefik.
+    internalIps = [ "127.0.0.1" "::1" ];
+
+    acme = {
+      email = "admin@example.com";
+      envFile = "/var/lib/acme/cloudflare.env";
+      # Extra lego flags. Add "--ipv4only" if IPv6 causes LE failures.
+      legoExtraFlags = [];
+    };
+
+    # SMTP relay for outbound mail (optional)
+    relay = {
+      enable = false;
+      host = "relay.example.com";
+    };
+
+    dkimSelectors = [ "2026a" ];
+
+    # Pangolin/Traefik integration (optional)
+    pangolin.enable = false;
+  };
+
+  system.stateVersion = "26.05";
+}

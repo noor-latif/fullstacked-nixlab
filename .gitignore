@@ -1,14 +1,9 @@
-.env
-*.env
-*.key
-*.pem
-*.crt
-*.csr
-*.p12
-*.sqlite
-*.sqlite-*
-acme.json
-config/db/
-config/key
+# Nix build artifacts
 result
 result-*
+
+# Secrets and runtime state
+*.env
+*.secret
+!*.env.example
+/var/

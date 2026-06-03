@@ -7,26 +7,39 @@ in {
 
     hostname = lib.mkOption {
       type = lib.types.str;
-      default = "mail.fullstacked.se";
+      example = "mail.example.com";
       description = "Full hostname of the mail server, e.g. mail.example.com";
     };
 
     domain = lib.mkOption {
       type = lib.types.str;
-      default = "fullstacked.se";
+      example = "example.com";
       description = "Primary mail domain";
     };
 
     publicIps = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "143.14.50.130" ];
+      example = [ "203.0.113.1" ];
       description = "Public IP addresses for the mail server listener";
     };
 
     adminAccount = lib.mkOption {
       type = lib.types.str;
-      default = "noor";
+      example = "admin";
       description = "Mox admin account name (for postmaster, DMARC, TLSRPT delivery)";
+    };
+
+    certName = lib.mkOption {
+      type = lib.types.str;
+      default = "mail";
+      description = "Name prefix for TLS certificate files and lego cert name";
+    };
+
+    certExtraDomains = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      example = [ "mta-sts.example.com" "autoconfig.example.com" ];
+      description = "Additional SAN domains for the TLS certificate";
     };
 
     logLevel = lib.mkOption {
@@ -43,52 +56,71 @@ in {
 
     internalIps = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "127.0.0.1" "172.18.0.1" "::1" ];
+      default = [ "127.0.0.1" "::1" ];
+      example = [ "127.0.0.1" "172.18.0.1" "::1" ];
       description = "IPs for the internal Mox listener (web services)";
     };
 
     acme = {
       email = lib.mkOption {
         type = lib.types.str;
-        default = "noor@latif.se";
+        example = "admin@example.com";
         description = "Email address for ACME account registration";
       };
-      cloudflareEnvFile = lib.mkOption {
+      dnsProvider = lib.mkOption {
         type = lib.types.str;
-        default = "/var/lib/acme/fullstacked-cloudflare.env";
-        description = "File with CLOUDFLARE_API_TOKEN for DNS-01 challenge";
+        default = "cloudflare";
+        description = "Lego DNS provider name (cloudflare, route53, digitalocean, etc.)";
+      };
+      envFile = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/acme/cloudflare.env";
+        description = "File with DNS provider API credentials for DNS-01 challenge";
+      };
+      legoExtraFlags = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        example = [ "--ipv4only" ];
+        description = "Extra flags passed to lego run";
       };
     };
 
     relay = {
+      enable = lib.mkEnableOption "SMTP relay for outbound mail";
+      transportName = lib.mkOption {
+        type = lib.types.str;
+        default = "Relay";
+        description = "Transport name used in Mox config";
+      };
       host = lib.mkOption {
         type = lib.types.str;
-        default = "relay.hostup.se";
-        description = "SMTP relay hostname";
+        default = "";
+        example = "relay.example.com";
+        description = "SMTP relay hostname (required if relay is enabled)";
       };
       port = lib.mkOption {
         type = lib.types.port;
         default = 587;
-        description = "SMTP relay port (STARTTLS)";
+        description = "SMTP relay port";
       };
     };
 
     mtastsMaxAge = lib.mkOption {
       type = lib.types.str;
       default = "336h0m0s";
-      description = "MTA-STS policy max-age as Go duration (e.g. 336h0m0s for 2 weeks)";
+      description = "MTA-STS policy max-age as Go duration";
     };
 
     dkimSelectors = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "2026a" "2026b" ];
+      example = [ "2026a" ];
       description = "DKIM selector names (must have matching private keys under dkim/)";
     };
 
     dkimSignSelectors = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "2026a" "2026b" ];
-      description = "DKIM selectors used to sign outgoing mail";
+      example = [ "2026a" ];
+      description = "DKIM selectors used to sign outgoing mail (defaults to dkimSelectors)";
     };
 
     dnsbls = lib.mkOption {
@@ -98,7 +130,7 @@ in {
     };
 
     pangolin = {
-      enable = lib.mkEnableOption "Pangolin/Traefik integration (copy certs for HTTPS, notify Traefik)";
+      enable = lib.mkEnableOption "Pangolin/Traefik integration (copy certs, notify Traefik)";
       certsDir = lib.mkOption {
         type = lib.types.str;
         default = "/opt/pangolin/config/traefik/certs";
@@ -119,7 +151,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    services.mox-mail.pangolin.enable = lib.mkDefault true;
+    services.mox-mail.pangolin.enable = lib.mkDefault false;
+    services.mox-mail.relay.enable = lib.mkDefault false;
+    services.mox-mail.dkimSignSelectors = lib.mkDefault cfg.dkimSelectors;
   };
 
   imports = [
