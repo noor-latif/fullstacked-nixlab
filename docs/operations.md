@@ -28,14 +28,24 @@ Do not put API tokens, Mox mailbox/admin passwords, ACME account keys, TLS priva
 
 ## Deploy NixOS Config
 
-This repo tracks the deployable NixOS config under `nixos/` and reusable modules under `modules/`.
+This repo tracks the deployable NixOS config under `nixos/` and reusable modules under `modules/`. The preferred deploy path is the pinned flake in `flake.nix`.
 
-Current live host imports `/etc/nixos/mox.nix`. Keep live changes mirrored here before rebuilding:
+Build without switching:
 
 ```sh
-sudo cp nixos/configuration.nix /etc/nixos/configuration.nix
-sudo cp modules/mox.nix /etc/nixos/mox.nix
-sudo nixos-rebuild switch
+nixos-rebuild build --flake .#nixos
+```
+
+Apply:
+
+```sh
+scripts/apply-nixos.sh
+```
+
+After the first flake switch, new shells also have:
+
+```sh
+apply
 ```
 
 ## DNS

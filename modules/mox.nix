@@ -19,6 +19,22 @@
     "d /var/lib/mox 0750 mox mox -"
   ];
 
+  security.acme = {
+    acceptTerms = true;
+    defaults.email = "noor@latif.se";
+    certs."mail.fullstacked.se" = {
+      domain = "mail.fullstacked.se";
+      extraDomainNames = [
+        "mta-sts.fullstacked.se"
+        "autoconfig.fullstacked.se"
+      ];
+      dnsProvider = "cloudflare";
+      environmentFile = "/var/lib/acme/fullstacked-cloudflare.env";
+      group = "mox";
+      reloadServices = [ "mox.service" ];
+    };
+  };
+
   networking.firewall.allowedTCPPorts = lib.mkAfter [
     25
     465

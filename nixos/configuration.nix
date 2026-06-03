@@ -8,7 +8,7 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ./mox.nix
+      ../modules/mox.nix
     ];
 
   # Bootloader.
@@ -75,6 +75,10 @@
   #  vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
   #  wget
   ];
+
+  environment.shellAliases = {
+    apply = "sudo nixos-rebuild switch --flake /home/noor/dev/pangolin-mailserver-vps#nixos";
+  };
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
