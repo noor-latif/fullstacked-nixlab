@@ -130,6 +130,7 @@
 
     acme = {
       email = "admin@example.com";         # Let's Encrypt account email
+      # server = "letsencrypt-staging";    # Uncomment to test without rate limits
       envFile = "/var/lib/acme/cloudflare.env";  # DNS API credentials
       # Extra lego flags. Add "--ipv4only" if IPv6 causes LE reachability issues.
       legoExtraFlags = [];

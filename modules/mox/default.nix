@@ -71,6 +71,11 @@ in {
         example = "admin@example.com";
         description = "Email address for ACME account registration";
       };
+      server = lib.mkOption {
+        type = lib.types.str;
+        default = "letsencrypt";
+        description = "Lego ACME server (letsencrypt, letsencrypt-staging, or custom URL)";
+      };
       dnsProvider = lib.mkOption {
         type = lib.types.str;
         default = "cloudflare";
@@ -121,6 +126,12 @@ in {
       description = "DKIM selector names (must have matching private keys under dkim/)";
     };
 
+    dkimKeyType = lib.mkOption {
+      type = lib.types.str;
+      default = "rsa2048";
+      description = "DKIM key type used in private key filenames (e.g. rsa2048, ed25519)";
+    };
+
     dkimSignSelectors = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       example = [ "2026a" ];
@@ -154,8 +165,15 @@ in {
     };
   };
 
-  # Apply safe defaults when the user doesn't override.
+  # Apply safe defaults and validation when the user doesn't override.
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !cfg.relay.enable || cfg.relay.host != "";
+        message = "services.mox-mail.relay.host must be set when relay.enable is true";
+      }
+    ];
+
     services.mox-mail.pangolin.enable = lib.mkDefault false;
     services.mox-mail.relay.enable = lib.mkDefault false;
     services.mox-mail.dkimSignSelectors = lib.mkDefault cfg.dkimSelectors;

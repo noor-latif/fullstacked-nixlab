@@ -58,7 +58,7 @@ in {
       '' + ''
 
         ${pkgs.lego}/bin/lego run \
-          --server letsencrypt \
+          --server ${cfg.acme.server} \
           --accept-tos \
           --email ${cfg.acme.email} \
           --dns ${cfg.acme.dnsProvider} \

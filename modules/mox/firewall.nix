@@ -8,7 +8,6 @@ in {
     networking.firewall.allowedTCPPorts = lib.mkAfter [
       25
       465
-      587
       993
       1080
     ];

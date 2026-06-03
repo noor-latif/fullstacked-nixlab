@@ -205,7 +205,7 @@ ${indent 3}Selectors:
 ${builtins.concatStringsSep "\n" (map (s: ''
 ${indent 4}${s}:
 ${indent 5}Expiration: 72h
-${indent 5}PrivateKeyFile: dkim/${s}._domainkey.${cfg.domain}.rsa2048.privatekey.pkcs8.pem'') cfg.dkimSelectors)}
+${indent 5}PrivateKeyFile: dkim/${s}._domainkey.${cfg.domain}.${cfg.dkimKeyType}.privatekey.pkcs8.pem'') cfg.dkimSelectors)}
 ${indent 3}Sign:
 ${builtins.concatStringsSep "\n" (map (s: "${indent 4}- ${s}") cfg.dkimSignSelectors)}
 
