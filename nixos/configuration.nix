@@ -112,6 +112,10 @@
     allowedUDPPorts = [ 51820 21820 ];
   };
   security.sudo.wheelNeedsPassword = true;
+  security.sudo.extraConfig = ''
+    Defaults timestamp_type=global
+    Defaults timestamp_timeout=20
+  '';
   services.fail2ban.enable = true;
 
   virtualisation.docker = {
