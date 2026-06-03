@@ -1,0 +1,14 @@
+.env
+*.env
+*.key
+*.pem
+*.crt
+*.csr
+*.p12
+*.sqlite
+*.sqlite-*
+acme.json
+config/db/
+config/key
+result
+result-*
