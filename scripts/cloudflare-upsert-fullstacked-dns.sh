@@ -76,6 +76,7 @@ delete_duplicate_spf() {
       done
 }
 
+upsert_record A "$MOX_DOMAIN" "$MOX_PUBLIC_IPV4" 300 false
 upsert_record A "$MOX_MAIL_HOST" "$MOX_PUBLIC_IPV4" 300 false
 upsert_record CNAME "mta-sts.${MOX_DOMAIN}" "$MOX_MAIL_HOST" 300 false
 upsert_record CNAME "autoconfig.${MOX_DOMAIN}" "$MOX_MAIL_HOST" 300 false
