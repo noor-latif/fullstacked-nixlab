@@ -41,7 +41,7 @@ If the agent's sudo fails with "a terminal is required", the cache is cold — r
 - Track reproducible server changes in `/home/noor/dev/pangolin-mailserver-vps` git. Make frequent, small commits after each logical change.
 - Keep secrets and generated private state out of git.
 - For Mox config, use `mox config describe-static`, `mox config describe-domains`, and `mox config example transport`.
-- Keep Mox mail protocols direct on the VPS: `25`, `465`, `993`. Port `587` is open in firewall for future use but Mox doesn't listen on it.
+- Keep Mox mail protocols direct on the VPS: `25`, `465`, `993`.
 - Route only Mox HTTP surfaces through Pangolin: webmail/account/admin, MTA-STS, autoconfig.
 - Keep `mail.fullstacked.se` DNS-only in Cloudflare. Do not proxy mail hostnames through Cloudflare orange-cloud.
 - Do not move mail into Kubernetes.
@@ -95,7 +95,7 @@ Mox listening ports:
 - `127.0.0.1:81` `127.0.0.1:1080` — local access
 - `[::1]:81` `[::1]:1080` — IPv6 localhost
 
-Firewall ports: 25, 465, 587, 993, 1080 (via mkAfter). Port 81 is NOT in firewall (internal only).
+Firewall ports: 25, 465, 993, 1080 (via mkAfter). Port 81 is NOT in firewall (internal only).
 
 ## NixOS Module Structure
 
@@ -107,7 +107,7 @@ modules/mox/
   seed-config.nix       ← generates mox.conf + domains.conf from options, installs on first boot
   cert-renewal.nix      ← lego DNS-01 cert renewal service + timer
   systemd-service.nix   ← Mox systemd service (hardened, wantedBy multi-user.target)
-  firewall.nix          ← opens TCP 25/465/587/993/1080 via lib.mkAfter
+  firewall.nix          ← opens TCP 25/465/993/1080 via lib.mkAfter
 ```
 
 All options have production defaults. Someone cloning the repo gets a working config for `fullstacked.se` out of the box. To customize, override `services.mox-mail.*` options.
