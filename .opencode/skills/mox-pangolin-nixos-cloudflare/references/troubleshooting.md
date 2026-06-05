@@ -124,7 +124,7 @@ API reference: `/opt/pangolin/config/openapi.yaml` — use this, not external do
 Run reconcile script:
 
 ```sh
-/home/noor/dev/pangolin-mailserver-vps/scripts/pangolin-reconcile-mox-resources.sh
+/home/noor/dev/fullstacked-nixlab/scripts/pangolin-reconcile-mox-resources.sh
 ```
 
 Or check manually:
@@ -142,7 +142,7 @@ Expected: three resources (mail→1080 SSO=on, mta-sts→81 SSO=off, autoconfig�
 Run DNS script:
 
 ```sh
-/home/noor/dev/pangolin-mailserver-vps/scripts/cloudflare-upsert-fullstacked-dns.sh
+/home/noor/dev/fullstacked-nixlab/scripts/cloudflare-upsert-fullstacked-dns.sh
 ```
 
 Verify:
