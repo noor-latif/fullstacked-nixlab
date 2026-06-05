@@ -63,7 +63,112 @@ git add -A
 sudo nixos-rebuild switch --flake '.#nixos'
 ```
 
-Or use the alias: `apply`
+Or use the alias: `apply` (resolves to `scripts/apply-nixos.sh` which builds the toplevel and execs `switch-to-configuration switch`).
+
+## Source of Truth Architecture
+
+The single source of truth for this machine's OS configuration is `/home/noor/dev/fullstacked-nixlab` (and the GitHub remote `noor-latif/fullstacked-nixlab`). The active `/etc/nixos` is a thin wrapper:
+
+- `/etc/nixos/flake.nix` declares a single `path:` flake input pointing at the repo and re-exports `nixlab.nixosConfigurations.nixos`.
+- `/etc/nixos/configuration.nix` and `/etc/nixos/hardware-configuration.nix` do not exist; all modules come from the repo.
+
+Consequences:
+
+- `nixos-rebuild switch` without `--flake` still works because the wrapper resolves the same `nixosConfigurations.nixos`.
+- `cd /home/noor/dev/fullstacked-nixlab && apply` is the documented way to update. `nixos-rebuild switch --flake .#nixos` from inside the repo is equivalent.
+- All paths in this skill point at the repo, not at /etc/nixos.
+
+## Hermes User Install
+
+Hermes Agent is **not** part of the server flake. It is a user-space install owned by `noor`:
+
+- Install method: official `curl -fsSL hermes-agent.nousresearch.com/install.sh | bash`. Lives in `~/.hermes/hermes-agent` (Git checkout, no NixOS module).
+- Runtime deps: user `nix profile` (not the server flake, not `/etc/nixos`). Current pinned packages: `git`, `uv`, `python311`, `nodejs_22`. Version pin recorded in `~/.hermes/runtime.toml`.
+- Gateway: user systemd unit `hermes-gateway.service`, runs the venv at `~/.hermes/hermes-agent/venv/bin/python`. Backing systemd user instance has lingering enabled.
+- Hermes gateway owns port `8642`. There is intentionally **no** `services.hermes-agent` system service and **no** Hermes Cachix trust in the server flake.
+
+If the user mentions "Hermes module", "services.hermes-agent", or "Hermes Cachix" in the context of this machine, those are gone and should not be reintroduced.
+
+## Experimental Features
+
+`nix-command` and `flakes` are NOT on by default in this NixOS config. The repo sets them explicitly with `lib.mkForce`:
+
+```nix
+nix.settings.experimental-features = lib.mkForce [ "nix-command" "flakes" ];
+```
+
+Verify with `nix show-config | head -3` (no flags). If a fresh `nix build` errors with "experimental Nix feature 'nix-command' is disabled", the wrapper is missing or not switched; check `/etc/nixos/flake.nix` and run `apply`.
+
+## nix.settings Rule
+
+`nix.settings.*` in `nixos/configuration.nix` uses `lib.mkForce` for every list-valued key (substituters, trusted-public-keys, trusted-users, experimental-features). Without `mkForce`, NixOS defaults and our values get merged with `lib.mkMerge`, producing duplicated entries in `/etc/nix/nix.conf`. New list keys added in this repo must also use `lib.mkForce`.
+
+## Git Push Broken: gh Credential Helper
+
+`git push` from this machine fails with:
+
+```text
+fatal: could not read Username for 'https://github.com': No such device or address
+```
+
+Cause: `~/.gitconfig` points the credential helper at `/nix/store/<hash>-gh-2.93.0/bin/.gh-wrapped`, but that store path is gone (gc or package upgrade). The OAuth token is still in `~/.config/gh/hosts.yml` under `oauth_token`.
+
+Workaround for one push:
+
+```sh
+TOKEN=$(awk '/oauth_token:/{print $2; exit}' /home/noor/.config/gh/hosts.yml)
+CREDFILE=$(mktemp)
+chmod 600 "$CREDFILE"
+printf 'protocol=https\nhost=github.com\nusername=x-access-token\npassword=%s\n' "$TOKEN" > "$CREDFILE"
+git -c credential.helper= -c credential.helper="store --file=$CREDFILE" push origin main
+shred -u "$CREDFILE"
+```
+
+Real fix (not done yet): reinstall `gh` via the user nix profile and update the credential helper in `~/.gitconfig` to the new store path.
+
+## New VPS Recovery (Honest Answer)
+
+**No, you cannot `git clone` and `apply` on a fresh VPS and have a working production server.** The repo provides reproducible *configuration*, not reproducible *state*.
+
+What the repo reproduces from a fresh clone:
+
+- System packages and services (Mox, Docker, fail2ban, openssh, nix-daemon, etc.).
+- User accounts with `noor`'s authorized SSH keys.
+- Firewall and Mox module defaults.
+- The `/etc/nixos` wrapper structure.
+
+What the repo does **not** reproduce (state that must be backed up separately):
+
+- `/var/lib/mox/` — mailboxes, mox.conf, domains.conf, DKIM keys, admin password hash, the cert the seed-config installed.
+- `/var/lib/acme/` and `/var/lib/mox-lego/` — lego/ACME account state, so the next cert renewal does not need a fresh registration.
+- `/opt/pangolin/` — the entire Pangolin stack: Docker volumes, config.yml (with the live `server.secret` and integration API state), Traefik dynamic config, cert copies.
+- `/home/noor/.hermes/` — user-level Hermes install. `~/.hermes/runtime.toml` and the Git checkout could in principle be regenerated, but the gateway state, cron jobs, memories, kanban.db, response_store.db, and any customizations are lost.
+- Cloudflare zone state — DNS records (managed by the API, not stored locally) and the API token.
+- `/etc/ssh/ssh_host_*` — host keys. New VPS will get fresh ones; existing clients will need to re-trust or have `known_hosts` cleaned.
+- The Cloudflare API token for certs, stored at `/var/lib/acme/fullstacked-cloudflare.env`.
+- Pangolin's `server.secret` and any Pangolin resource/site/target IDs that were configured through the API.
+- The user's SSH private keys (not on the server, but needed to log in).
+
+Practical new-VPS recovery, in order:
+
+1. Provision a new VPS at Hostup with the same disk layout (btrfs subvols for `/`, `/home`, `/nix`, swap). Get the new public IP.
+2. Bootstrap NixOS on the new VPS via Hostup's installer. During install, set up `noor` with an SSH key you can reach.
+3. `git clone https://github.com/noor-latif/fullstacked-nixlab.git /home/noor/dev/fullstacked-nixlab` and `cd` there.
+4. `apply`. This will set up the system services. Mox will start, but Mox's config has `ConditionPathExists` so it will only seed if `/var/lib/mox/config/mox.conf` is missing — meaning a fresh first boot.
+5. Restore state from backup: `/var/lib/mox/`, `/var/lib/acme/`, `/opt/pangolin/`. Restart Mox, restart the Pangolin stack.
+6. Update Pangolin targets if the new VPS's internal IP changed (the Docker network is usually `172.18.0.0/16`, but the gateway IP `172.18.0.1` is assigned by Docker; check `docker network inspect pangolin` and update resources if needed).
+7. Update Cloudflare: change the `mail.fullstacked.se` A record to the new VPS IP. Re-run `scripts/cloudflare-upsert-fullstacked-dns.sh` if any other records are stale.
+8. Update Hostup: PTR/rDNS for the new IP. SPF `include:spf.hostup.se` is unchanged because it is the relay's SPF, not yours. DKIM selectors are unchanged.
+9. Reinstall Hermes: `curl -fsSL hermes-agent.nousresearch.com/install.sh | bash`, then restore `~/.hermes/` (excluding the venv, which can be rebuilt). Add git, uv, python311, nodejs_22 to the user nix profile.
+
+**To get closer to "git clone + switch = up"**, the next work is:
+
+- A `scripts/backup-prod-state.sh` that tarballs `/var/lib/mox`, `/var/lib/acme`, `/var/lib/mox-lego`, `/opt/pangolin/config`, `/home/noor/.hermes` (sans venv). Run nightly via cron, ship to Backblaze B2 or similar.
+- A `scripts/restore-prod-state.sh` that takes a backup tarball and lays it down.
+- Move the Pangolin `server.secret` and Cloudflare token into a passphrase-encrypted file in the repo, decrypted by a small bootstrap script at apply time. This is the only way to remove the "API tokens must be restored out of band" step.
+- A `hardware-configuration.nix` discovery step on first boot that auto-generates the hardware file from the running kernel/disk layout, so a fresh VPS does not need manual UUIDs.
+
+This is real work, not a one-line fix. Tell me if you want to start on it.
 
 ## Expected Architecture
 
@@ -250,6 +355,8 @@ Remaining:
 ## Self-Maintenance
 
 Update this file after DNS changes, Mox config changes, Pangolin resource/site/target ID changes, TLS strategy changes, script changes, or NixOS module structure changes.
+
+The live copy at `~/.config/opencode/skills/mox-pangolin-nixos-cloudflare/SKILL.md` must match the repo copy at `.opencode/skills/mox-pangolin-nixos-cloudflare/SKILL.md`. When you edit one, copy it over the other in the same commit.
 
 Never store: API token values, sudo passwords, Mox admin passwords, mailbox passwords, TLS private key contents. Store paths and variable names instead.
 
