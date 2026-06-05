@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports =
@@ -124,17 +124,15 @@
   };
 
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-
-    substituters = [
-      "https://cache.nixos.org/"
-    ];
-    trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-    ];
+    # substituters and trusted-public-keys are NixOS defaults; mkForce to
+    # avoid duplicating them in /etc/nix/nix.conf when this module is
+    # merged with the upstream defaults.
+    substituters = lib.mkForce [ "https://cache.nixos.org/" ];
+    trusted-public-keys = lib.mkForce [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
 
     # Allow Noor's user profile commands to use the configured substituters.
-    trusted-users = [ "root" "noor" ];
+    # mkForce replaces the NixOS default ["root"] rather than appending.
+    trusted-users = lib.mkForce [ "root" "noor" ];
 
     # General production guardrail. Refuse to build large derivations locally;
     # bypass per-command with explicit --option max-jobs 0 --option fallback false
