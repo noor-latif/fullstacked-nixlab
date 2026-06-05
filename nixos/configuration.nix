@@ -77,7 +77,7 @@
   ];
 
   environment.shellAliases = {
-    apply = "/home/noor/dev/pangolin-mailserver-vps/scripts/apply-nixos.sh";
+    apply = "/home/noor/dev/fullstacked-nixlab/scripts/apply-nixos.sh";
   };
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -123,7 +123,25 @@
     autoPrune.enable = true;
   };
 
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+
+    substituters = [
+      "https://cache.nixos.org/"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    ];
+
+    # Allow Noor's user profile commands to use the configured substituters.
+    trusted-users = [ "root" "noor" ];
+
+    # General production guardrail. Refuse to build large derivations locally;
+    # bypass per-command with explicit --option max-jobs 0 --option fallback false
+    # when a small build is genuinely wanted.
+    max-jobs = 1;
+    cores = 1;
+  };
 
   services.mox-mail = {
     enable = true;
