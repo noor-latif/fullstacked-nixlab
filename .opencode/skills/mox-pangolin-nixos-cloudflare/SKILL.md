@@ -111,18 +111,18 @@ Verify with `nix show-config | head -3` (no flags). If a fresh `nix build` error
 fatal: could not read Username for 'https://github.com': No such device or address
 ```
 
-Cause: `~/.gitconfig` points the credential helper at `/nix/store/<hash>-gh-2.93.0/bin/.gh-wrapped`, but that store path is gone (gc or package upgrade). The OAuth token is still in `~/.config/gh/hosts.yml` under `oauth_token`.
+Cause: `~/.gitconfig` has a per-URL section `[credential "https://github.com"]` whose `helper = !/nix/store/<hash>-gh-2.93.0/bin/.gh-wrapped auth git-credential` points at a store path that is gone (gc or package upgrade). The OAuth token is still in `~/.config/gh/hosts.yml` under `oauth_token`.
 
-Workaround for one push:
+`git -c credential.helper= ...` does NOT clear this — the per-URL section wins over the global helper. The working workaround is an `insteadOf` URL rewrite that embeds the token:
 
 ```sh
 TOKEN=$(awk '/oauth_token:/{print $2; exit}' /home/noor/.config/gh/hosts.yml)
-CREDFILE=$(mktemp)
-chmod 600 "$CREDFILE"
-printf 'protocol=https\nhost=github.com\nusername=x-access-token\npassword=%s\n' "$TOKEN" > "$CREDFILE"
-git -c credential.helper= -c credential.helper="store --file=$CREDFILE" push origin main
-shred -u "$CREDFILE"
+git -c credential.helper= \
+    -c "url.https://x-access-token:${TOKEN}@github.com/noor-latif/fullstacked-nixlab.git.insteadOf=https://github.com/noor-latif/fullstacked-nixlab.git" \
+    push origin main
 ```
+
+This rewrites only the repo URL, scopes the token to a single command, and never writes it to disk.
 
 Real fix (not done yet): reinstall `gh` via the user nix profile and update the credential helper in `~/.gitconfig` to the new store path.
 
