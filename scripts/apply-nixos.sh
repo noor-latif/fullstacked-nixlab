@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/noor/dev/pangolin-mailserver-vps
+cd /home/noor/dev/fullstacked-nixlab
 nix --extra-experimental-features 'nix-command flakes' build \
   --print-out-paths \
   '.#nixosConfigurations."nixos".config.system.build.toplevel' \
