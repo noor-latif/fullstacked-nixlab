@@ -54,7 +54,7 @@ in {
       script = ''
         set -euo pipefail
 
-        exec ${pkgs.util-linux}/bin/flock -n ${lockFile} bash -s <<'LEGO_SCRIPT'
+        exec ${pkgs.util-linux}/bin/flock -n ${lockFile} ${pkgs.bash}/bin/bash -s <<'LEGO_SCRIPT'
         set -euo pipefail
 
         install -d -m 0700 ${legoStateDir}
