@@ -93,6 +93,11 @@
   # Enable QEMU guest agent for VM filesystem and diagnostics reporting.
   services.qemuGuest.enable = true;
 
+  # Tailscale: managed as a system service so tailscaled survives reboots.
+  # Auth via `sudo tailscale up` interactively, or set authKeyFile for
+  # unattended bring-up. Do NOT put the key directly in this file.
+  services.tailscale.enable = true;
+
   # Enable hardened, key-only SSH access.
   services.openssh = {
     enable = true;
