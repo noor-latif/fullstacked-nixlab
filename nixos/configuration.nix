@@ -124,6 +124,12 @@
   };
 
   nix.settings = {
+    # Enable nix-command and flakes explicitly. They are NOT on by default in
+    # this NixOS config (verified June 2026); without this line, plain
+    # `nix build ...` errors with "experimental Nix feature 'nix-command' is
+    # disabled".
+    experimental-features = lib.mkForce [ "nix-command" "flakes" ];
+
     # substituters and trusted-public-keys are NixOS defaults; mkForce to
     # avoid duplicating them in /etc/nix/nix.conf when this module is
     # merged with the upstream defaults.
