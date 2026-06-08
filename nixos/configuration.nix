@@ -109,6 +109,10 @@
       PermitRootLogin = "no";
       X11Forwarding = false;
     };
+    extraConfig = ''
+      ClientAliveInterval 60
+      ClientAliveCountMax 3
+    '';
   };
 
   networking.firewall = {
@@ -117,6 +121,17 @@
     allowedUDPPorts = [ 51820 21820 ];
   };
   security.sudo.wheelNeedsPassword = true;
+  security.sudo.extraRules = [
+    {
+      users = [ "noor" ];
+      commands = [
+        {
+          command = "ALL";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
+  ];
   security.sudo.extraConfig = ''
     Defaults timestamp_type=global
     Defaults timestamp_timeout=20
