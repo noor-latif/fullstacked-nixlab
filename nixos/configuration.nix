@@ -143,6 +143,20 @@
     autoPrune.enable = true;
   };
 
+  # Allow FHS binaries (e.g. VS Code Server, AppImages, prebuilt dev tools)
+  # to run on NixOS by providing a standard dynamic linker and common libs.
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    stdenv.cc.cc
+    zlib
+    fuse3
+    icu
+    nss
+    openssl
+    curl
+    expat
+  ];
+
   nix.settings = {
     # Enable nix-command and flakes explicitly. They are NOT on by default in
     # this NixOS config (verified June 2026); without this line, plain
