@@ -30,9 +30,5 @@
       options = [ "subvol=nix" ];
     };
 
-  swapDevices =
-    [ { device = "/dev/disk/by-uuid/77a43dd1-0d0f-4004-9e53-b68c965ec52d"; }
-    ];
-
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
