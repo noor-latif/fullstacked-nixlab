@@ -120,6 +120,13 @@
     enable = true;
     allowedTCPPorts = [ 80 443 ];
     allowedUDPPorts = [ 51820 21820 ];
+    # Docker bridge (Pangolin/Traefik) -> host services.
+    # Traefik reaches host-bound ports via 172.18.0.1; without these
+    # subnet-scoped accepts it returns 502. Scoped to the bridge, not public.
+    extraCommands = ''
+      iptables -I nixos-fw 1 -p tcp -s 172.18.0.0/16 --dport 3000 -j nixos-fw-accept
+      iptables -I nixos-fw 2 -p tcp -s 172.18.0.0/16 --dport 8123 -j nixos-fw-accept
+    '';
   };
   security.sudo.wheelNeedsPassword = true;
   security.sudo.extraRules = [
