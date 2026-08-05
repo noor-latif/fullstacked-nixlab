@@ -29,11 +29,7 @@ let
 
   # One accept rule per port, jumped from INPUT.
   acceptRules = lib.concatMapStringsSep "\n" (port:
-    ''iptables -w -A ${chain} -p tcp -s ${bridgeSubnet} --dport ${toString port} -j ACCEPT --comment "pangolin-bridge ${toString port}"''
-  ) ports;
-
-  teardownRules = lib.concatMapStringsSep "\n" (port:
-    ''iptables -w -D ${chain} -p tcp -s ${bridgeSubnet} --dport ${toString port} -j ACCEPT || true''
+    ''iptables -w -A ${chain} -p tcp -s ${bridgeSubnet} --dport ${toString port} -j ACCEPT''
   ) ports;
 in
 {
