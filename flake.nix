@@ -7,6 +7,7 @@
 
   outputs = { nixpkgs, ... }: {
     nixosModules.mox = ./modules/mox;
+    nixosModules.pangolin-bridge = ./modules/pangolin-bridge;
 
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
