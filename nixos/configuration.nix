@@ -124,6 +124,17 @@
     # Host services reachable via the Docker bridge (Pangolin/Traefik) are
     # opened by the pangolin-bridge module, which reads data/bridge-ports.json
     # at build time — see modules/pangolin-bridge/firewall.nix.
+    # The Camofox browser container (docker0 bridge) must reach local dev
+    # servers (bayt-hub dev on :3001). Scoped to docker0 + port only; the
+    # matching extraStopCommands keeps the rule idempotent across activations
+    # (the bare-extraCommands accumulation pitfall documented in
+    # modules/pangolin-bridge/firewall.nix).
+    extraStopCommands = ''
+      iptables -w -D nixos-fw -i docker0 -p tcp --dport 3001 -j ACCEPT 2>/dev/null || true
+    '';
+    extraCommands = ''
+      iptables -w -I nixos-fw 1 -i docker0 -p tcp --dport 3001 -j ACCEPT
+    '';
   };
 
   services.pangolin-bridge.enable = true;
