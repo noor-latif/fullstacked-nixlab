@@ -45,6 +45,12 @@ in {
       description = "Stalwart admin account name";
     };
 
+    adminPasswordHash = lib.mkOption {
+      type = lib.types.str;
+      example = "$6$rounds=656000$....";
+      description = "sha512-crypt hash for the admin account (mkpasswd -m sha-512 <pw>). Used by authentication.fallback-admin for first-run bootstrap.";
+    };
+
     adminPasswordFile = lib.mkOption {
       type = lib.types.str;
       example = "/run/keys/stalwart_admin_password";
@@ -167,6 +173,13 @@ in {
         certificate.default = {
           cert = "${tlsDir}/${certName}-chain.pem";
           key = "${tlsDir}/${certName}-key.pem";
+        };
+
+        # First-run admin bootstrap. Stalwart creates this principal on first
+        # boot if no principals exist. Use `mkpasswd -m sha-512 <pw>` to rotate.
+        authentication.fallback-admin = {
+          user = cfg.adminAccount;
+          secret = cfg.adminPasswordHash;
         };
       };
     };

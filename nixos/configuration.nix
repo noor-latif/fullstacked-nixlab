@@ -205,9 +205,9 @@
     domain = "fullstacked.se";
     publicIps = [ "143.14.50.130" ];
     adminAccount = "noor";
+    adminPasswordHash = "$6$sckwmSMisXkPduDw$QvafldvHFI54fc0uH3MsgbAlLt42TY5iwU9K01SRjREwZsrSmqYGJApqLwits.PcQhHKoLBgTZty0Mm01e4nn1";
     certName = "fullstacked-mail";
     certExtraDomains = [ "mta-sts.fullstacked.se" "autoconfig.fullstacked.se" ];
-    adminPasswordFile = "/var/lib/stalwart/config/admin_password";
     webadminBind = "172.18.0.1:1080";
     acme = {
       email = "noor@latif.se";
