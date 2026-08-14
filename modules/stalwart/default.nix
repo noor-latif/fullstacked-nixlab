@@ -172,7 +172,7 @@ in {
 
         certificate.default = {
           cert = "${tlsDir}/${certName}-chain.pem";
-          key = "${tlsDir}/${certName}-key.pem";
+          private-key = "${tlsDir}/${certName}-key.pem";
         };
 
         # First-run admin bootstrap. Stalwart creates this principal on first
