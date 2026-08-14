@@ -209,7 +209,9 @@ in {
         ProtectKernelLogs = true;
         ProtectKernelModules = true;
         RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
-        RestrictNamespaces = true;
+        # lego DNS-01 + flock subprocess need namespace ops; RestrictNamespaces=true
+        # caused status=226/NAMESPACE and blocked nixos-rebuild switch.
+        RestrictNamespaces = false;
         RestrictRealtime = true;
         LockPersonality = true;
         MemoryDenyWriteExecute = true;
