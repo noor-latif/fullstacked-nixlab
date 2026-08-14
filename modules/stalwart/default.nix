@@ -175,6 +175,13 @@ in {
           private-key = "${tlsDir}/${certName}-key.pem";
         };
 
+        # Stalwart treats certificate.* as a DB key by default, which makes the
+        # TOML certificate block above ignored (no cert loaded -> TLS listeners
+        # serve plaintext). Declare it a local key so the on-disk cert is used.
+        config = {
+          local-keys = [ "certificate.*" "server.tls.*" ];
+        };
+
         # First-run admin bootstrap. Stalwart creates this principal on first
         # boot if no principals exist. Use `mkpasswd -m sha-512 <pw>` to rotate.
         authentication.fallback-admin = {
