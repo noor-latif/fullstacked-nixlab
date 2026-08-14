@@ -170,17 +170,12 @@ in {
           tls.certificate = "default";
         };
 
-        certificate.default = {
-          cert = "${tlsDir}/${certName}-chain.pem";
-          private-key = "${tlsDir}/${certName}-key.pem";
-        };
-
-        # Stalwart treats certificate.* as a DB key by default, which makes the
-        # TOML certificate block above ignored (no cert loaded -> TLS listeners
-        # serve plaintext). Declare it a local key so the on-disk cert is used.
-        config = {
-          local-keys = [ "certificate.*" "server.tls.*" ];
-        };
+        # NOTE: Stalwart 0.15.5 stores certificates as Certificate objects
+        # (DB/WebUI), not the legacy [certificate.default] TOML block. The TOML
+        # form is deprecated and only emits build warnings. Stalwart auto-
+        # generates a self-signed cert named "default" on first start, which
+        # server.tls.certificate = "default" references. The real mail.full-
+        # stacked.se cert is imported post-switch via stalwart-cli (see apply).
 
         # First-run admin bootstrap. Stalwart creates this principal on first
         # boot if no principals exist. Use `mkpasswd -m sha-512 <pw>` to rotate.
