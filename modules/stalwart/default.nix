@@ -167,15 +167,15 @@ in {
             webadmin = { protocol = "http"; bind = [ cfg.webadminBind ]; };
           };
           # Acme is handled by the lego timer below; point at the written certs.
+          # Stalwart auto-generates a self-signed cert registered as "default"
+          # when certificate.self-signed = true. This makes the implicit-TLS
+          # listeners present a (self-signed) cert so clients can complete the
+          # handshake. The real mail.fullstacked.se cert is loaded post-switch
+          # via the management API once a compatible webadmin is in place.
           tls.certificate = "default";
         };
 
-        # NOTE: Stalwart 0.15.5 stores certificates as Certificate objects
-        # (DB/WebUI), not the legacy [certificate.default] TOML block. The TOML
-        # form is deprecated and only emits build warnings. Stalwart auto-
-        # generates a self-signed cert named "default" on first start, which
-        # server.tls.certificate = "default" references. The real mail.full-
-        # stacked.se cert is imported post-switch via stalwart-cli (see apply).
+        certificate.self-signed = true;
 
         # First-run admin bootstrap. Stalwart creates this principal on first
         # boot if no principals exist. Use `mkpasswd -m sha-512 <pw>` to rotate.
