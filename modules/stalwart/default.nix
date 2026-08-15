@@ -167,15 +167,24 @@ in {
             webadmin = { protocol = "http"; bind = [ cfg.webadminBind ]; };
           };
           # Acme is handled by the lego timer below; point at the written certs.
-          # Stalwart auto-generates a self-signed cert registered as "default"
-          # when certificate.self-signed = true. This makes the implicit-TLS
-          # listeners present a (self-signed) cert so clients can complete the
-          # handshake. The real mail.fullstacked.se cert is loaded post-switch
-          # via the management API once a compatible webadmin is in place.
+          # The cert block uses the %{file:...}% macro (NOT a plain path) so
+          # Stalwart reads the PEM from disk — a literal path is treated as PEM
+          # content and fails with "No certificates found", making implicit-TLS
+          # listeners serve plaintext. `default = true` registers it as the
+          # fallback cert. `certificate.*` must be in config.local-keys for the
+          # macro to expand (per Stalwart discussion #2998 / #404).
           tls.certificate = "default";
         };
 
-        certificate.self-signed = true;
+        certificate.default = {
+          cert = "%{file:${tlsDir}/${certName}-chain.pem}%";
+          private-key = "%{file:${tlsDir}/${certName}-key.pem}%";
+          default = true;
+        };
+
+        config = {
+          local-keys = [ "certificate.*" "server.tls.*" ];
+        };
 
         # First-run admin bootstrap. Stalwart creates this principal on first
         # boot if no principals exist. Use `mkpasswd -m sha-512 <pw>` to rotate.
@@ -190,6 +199,11 @@ in {
     systemd.tmpfiles.rules = [
       "d ${tlsDir} 0750 stalwart stalwart -"
       "d ${tlsDir}/dkim 0750 stalwart stalwart -"
+      # Cert files MUST be owned by the stalwart user (Stalwart rejects certs
+      # not owned by its user even with 0644/0777 perms — Stalwart discussion
+      # #2998). Enforce ownership via tmpfiles so the lego timer's copy sticks.
+      "f ${tlsDir}/${cfg.certName}-chain.pem 0640 stalwart stalwart -"
+      "f ${tlsDir}/${cfg.certName}-key.pem 0640 stalwart stalwart -"
     ];
 
     systemd.services.stalwart-lego-cert = {
