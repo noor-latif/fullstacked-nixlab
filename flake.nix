@@ -1,34 +1,20 @@
 {
-  description = "NixOS module for running a Mox mail server, with optional Pangolin/Traefik integration";
+  description = "NixOS configuration for the fullstacked.se mail/infra stack (Stalwart + Pangolin)";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/b51242d7d43689db2f3be91bd05d5b24fbb469c4";
+    # Track a single, current nixpkgs. nixos-unstable carries modern packages
+    # (e.g. stalwart_0_16) that the 26.05 release branch lacks. The resolved
+    # commit is pinned in flake.lock for reproducibility; update deliberately
+    # with `nix flake update nixpkgs`, then rebuild + commit.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs = { nixpkgs, ... }: {
-    nixosModules.mox = ./modules/mox;
     nixosModules.pangolin-bridge = ./modules/pangolin-bridge;
 
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        ({ ... }: {
-          nixpkgs.overlays = [
-            (final: prev: {
-              lego = prev.lego.overrideAttrs (old: rec {
-                version = "5.2.2";
-                src = final.fetchFromGitHub {
-                  owner = "go-acme";
-                  repo = "lego";
-                  tag = "v${version}";
-                  hash = "sha256-uo2XbCtsFEmdcCevb5aelQ9452LjEqNJb2dR8oWDJFc=";
-                };
-                vendorHash = "sha256-PtE/3oADcNo/Vv1zZoPkzsWu8+ea2jRtt9avqjdGATs=";
-                subPackages = [ "." ];
-              });
-            })
-          ];
-        })
         ./nixos/configuration.nix
       ];
     };

@@ -203,20 +203,16 @@
     enable = true;
     hostname = "mail.fullstacked.se";
     domain = "fullstacked.se";
-    publicIps = [ "143.14.50.130" ];
-    adminAccount = "noor";
-    adminPasswordHash = "$6$sckwmSMisXkPduDw$QvafldvHFI54fc0uH3MsgbAlLt42TY5iwU9K01SRjREwZsrSmqYGJApqLwits.PcQhHKoLBgTZty0Mm01e4nn1";
-    certName = "fullstacked-mail";
-    certExtraDomains = [ "mta-sts.fullstacked.se" "autoconfig.fullstacked.se" ];
+    adminAccount = "admin";
     webadminBind = "172.18.0.1:1080";
-    acme = {
-      email = "noor@latif.se";
-      envFile = "/var/lib/acme/fullstacked-cloudflare.env";
-      legoExtraFlags = [ "--ipv4only" "--ari-disable" ];
-    };
-    dkimSelectors = [ "2026a" "2026b" ];
     openFirewall = true;
-    traefik.enable = true;
+    backup = {
+      enable = true;
+      s3Endpoint = "https://s3.hostup.se";
+      s3Bucket = "stalwart-mailserver";
+      s3Region = "eu-north-1";
+      keep = 7;
+    };
   };
 
   # Open ports in the firewall.
