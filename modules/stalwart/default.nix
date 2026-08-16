@@ -162,8 +162,8 @@ in {
           # Implicit-TLS-only listeners (matches mox: 25/465/993). No STARTTLS 587.
           listener = {
             smtp = { protocol = "smtp"; bind = [ "[::]:25" ]; };
-            submissions = { protocol = "smtp"; bind = [ "[::]:465" ]; tlsImplicit = true; };
-            imaps = { protocol = "imap"; bind = [ "[::]:993" ]; tlsImplicit = true; };
+            submissions = { protocol = "smtp"; bind = [ "[::]:465" ]; tls = { implicit = true; }; };
+            imaps = { protocol = "imap"; bind = [ "[::]:993" ]; tls = { implicit = true; }; };
             webadmin = { protocol = "http"; bind = [ cfg.webadminBind ]; };
           };
           # Acme is handled by the lego timer below; point at the written certs.
@@ -182,6 +182,17 @@ in {
           default = true;
         };
 
+        # Forward salam@fullstacked.se -> noor.crystal@gmail.com at the SMTP
+        # DATA stage (trusted system script, applies to unauthenticated inbound
+        # mail). Pure forward: no local copy kept (avoids mailbox bloat).
+        session.data.script = "'salam-forward'";
+        sieve.trusted.scripts.salam-forward.contents = ''
+          require ["envelope"];
+          if address :is "To" "salam@fullstacked.se" {
+              redirect "noor.crystal@gmail.com";
+          }
+        '';
+
         config = {
           local-keys = [ "certificate.*" "server.tls.*" ];
         };
@@ -192,6 +203,47 @@ in {
           user = cfg.adminAccount;
           secret = cfg.adminPasswordHash;
         };
+
+        # Outbound: relay everything (except local delivery) through Hostup,
+        # matching the old Mox transport. IP-whitelist auth — no credentials.
+        queue.route.hostup = {
+          type = "relay";
+          address = "relay.hostup.se";
+          port = 587;
+          protocol = "smtp";
+          description = "Hostup outbound relay";
+          tls = {
+            implicit = false;
+            allow-invalid-certs = false;
+          };
+        };
+        queue.strategy.route = [
+          { "if" = "is_local_domain('', rcpt_domain)"; "then" = "'local'"; }
+          { "else" = "'hostup'"; }
+        ];
+
+        # DKIM: reuse the mox key material copied into tlsDir/dkim/ for
+        # selectors 2026a/2026b (files are PKCS#8 PEM RSA 2048 keys).
+        signature."2026a" = {
+          domain = cfg.domain;
+          selector = "2026a";
+          private-key = "%{file:${tlsDir}/dkim/2026a._domainkey.${cfg.domain}.20260603T095354.rsa2048.privatekey.pkcs8.pem}%";
+          headers = [ "From" "To" "Date" "Subject" "Message-ID" "MIME-Version" "Content-Type" "In-Reply-To" "References" ];
+          algorithm = "rsa-sha256";
+          canonicalization = "relaxed/relaxed";
+          set-body-length = true;
+          report = true;
+        };
+        signature."2026b" = {
+          domain = cfg.domain;
+          selector = "2026b";
+          private-key = "%{file:${tlsDir}/dkim/2026b._domainkey.${cfg.domain}.20260603T095354.rsa2048.privatekey.pkcs8.pem}%";
+          headers = [ "From" "To" "Date" "Subject" "Message-ID" "MIME-Version" "Content-Type" "In-Reply-To" "References" ];
+          algorithm = "rsa-sha256";
+          canonicalization = "relaxed/relaxed";
+          set-body-length = true;
+          report = true;
+        };
       };
     };
 
@@ -199,11 +251,17 @@ in {
     systemd.tmpfiles.rules = [
       "d ${tlsDir} 0750 stalwart stalwart -"
       "d ${tlsDir}/dkim 0750 stalwart stalwart -"
+      # lego state dir must exist before systemd bind-mounts it for the cert
+      # unit's ReadWritePaths (otherwise the unit dies with status=226/NAMESPACE).
+      "d ${legoStateDir} 0700 stalwart stalwart -"
       # Cert files MUST be owned by the stalwart user (Stalwart rejects certs
       # not owned by its user even with 0644/0777 perms — Stalwart discussion
       # #2998). Enforce ownership via tmpfiles so the lego timer's copy sticks.
       "f ${tlsDir}/${cfg.certName}-chain.pem 0640 stalwart stalwart -"
       "f ${tlsDir}/${cfg.certName}-key.pem 0640 stalwart stalwart -"
+      # Same ownership requirement for the reused mox DKIM keys (PKCS#8 PEM).
+      "f ${tlsDir}/dkim/2026a._domainkey.${cfg.domain}.20260603T095354.rsa2048.privatekey.pkcs8.pem 0640 stalwart stalwart -"
+      "f ${tlsDir}/dkim/2026b._domainkey.${cfg.domain}.20260603T095354.rsa2048.privatekey.pkcs8.pem 0640 stalwart stalwart -"
     ];
 
     systemd.services.stalwart-lego-cert = {
