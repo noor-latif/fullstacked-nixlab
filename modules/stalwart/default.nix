@@ -169,7 +169,7 @@ in {
         NoNewPrivileges = true;
         RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
       };
-      path = [ pkgs.awscli2 pkgs.gnutar pkgs.coreutils ];
+      path = [ pkgs.awscli2 pkgs.gnutar pkgs.gzip pkgs.coreutils ];
       script = ''
         set -euo pipefail
         stampprefix="stalwart-$(date +%Y%m%d-%H%M%S)"
