@@ -10,7 +10,7 @@ Use this skill for work on Noor's mail setup:
 - Domain: `fullstacked.se`
 - Mail hostname: `mail.fullstacked.se`
 - VPS OS: NixOS, flake at `/home/noor/dev/fullstacked-nixlab`
-- Mail server: **Stalwart 0.16.16** via the `services.stalwartSetup` module in `modules/stalwart/`. All config lives in the Stalwart **RocksDB datastore** under `/var/lib/stalwart/` (bootstrapped by `/var/lib/stalwart/config.json`). Migrated to Stalwart 2026-08-16 (0.15.5 → 0.16.x) from an earlier Mox setup that has been fully removed.
+- Mail server: **Stalwart 0.16.16** via the `services.stalwartSetup` module in `modules/stalwart/`. All config lives in the Stalwart **RocksDB datastore** under `/var/lib/stalwart/` (bootstrapped by `/var/lib/stalwart/config.json`).
 
 **`/var/lib/stalwart/config.json` is ONLY a RocksDB storage bootstrap** (its top-level keys are `@type`, `path`, `blobSize`, `bufferSize`, `poolWorkers`). It does NOT contain listener/server/http settings. The real config objects (listeners, domains, certs, ACME, DNS, relay, `SystemSettings`, `proxyTrustedNetworks`, etc.) are stored as RocksDB objects, managed via webadmin / `stalwart-cli` / JMAP (`x:`-namespaced methods). **`/etc/stalwart/stalwart.toml` is EMPTY/unused — never edit it; changes there do nothing.** To find the live `--config=` path: `systemctl cat stalwart.service`.
 - Reverse proxy: Pangolin/Gerbil/Traefik Docker stack in `/opt/pangolin`
@@ -195,9 +195,6 @@ mail.fullstacked.se       -> 172.18.0.1:1080  (SSO enabled)   — webadmin
 mta-sts.fullstacked.se    -> 172.18.0.1:1080  (SSO disabled)  — MTA-STS policy
 autoconfig.fullstacked.se -> 172.18.0.1:1080  (SSO disabled)  — autoconfig XML
 ```
-
-**WARNING (migration gap):** as of 2026-08-16 the Pangolin resources for `mta-sts.fullstacked.se` and `autoconfig.fullstacked.se` still point at port `81`, which no longer serves anything. They must be re-targeted to `172.18.0.1:1080`. See Follow-ups.
-
 Firewall: 25, 465, 993 opened by the Stalwart module. Port 1080 opened via `pangolin-bridge` (reads `data/bridge-ports.json`).
 
 ## NixOS Module Structure
@@ -226,7 +223,7 @@ Key points (from `modules/stalwart/default.nix`):
 - Default cert: `Certificate` object `i31e2ujkabqa` (Let's Encrypt YE1, SANs `fullstacked.se` + `mail.fullstacked.se`), set as `defaultCertificateId` in `SystemSettings`.
 - DKIM: selectors `2026a` / `2026b`, auto-managed by Stalwart (`dkimManagement` Automatic on domain `b`).
 - Admin: `admin@fullstacked.se` (wizard-created). Recovery admin in `/etc/stalwart-admin.env` (root 600) still authenticates if locked out.
-- First-run webadmin bootstrap completed; the TEMP `STALWART_RECOVERY_MODE` env block was removed from the module after migration.
+- First-run webadmin bootstrap completed; the TEMP `STALWART_RECOVERY_MODE` env block is removed from the module.
 
 ## Recovery Mode (CRITICAL diagnostic)
 
@@ -364,7 +361,7 @@ curl -sS -H "Authorization: Bearer $PANGOLIN_API_TOKEN" 'http://localhost:3003/v
 
 ## Current Status & Remaining Follow-ups
 
-Migrated to Stalwart 0.16.16 (DB config, built-in ACME) on 2026-08-16. Running and verified:
+Stalwart 0.16.16 running and verified (DB config, built-in ACME):
 
 - Stalwart active on 25/465/993 (TLS verified via `mail-tls-check.sh`: cert valid ~89 days) + webadmin on `172.18.0.1:1080`.
 - Let's Encrypt cert `i31e2ujkabqa` issued via ACME DNS-01; default cert set; renewal task scheduled.
