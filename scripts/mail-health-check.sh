@@ -3,12 +3,13 @@
 # (optionally) authenticated access are working. Complements
 # mail-tls-check.sh (TLS cert lifetime + DNS).
 # Requires: curl, openssl, base64.
-# Optional: sources /home/noor/.config/opencode/fullstacked.env for
+# Optional: sources ${ENV_FILE:-$HOME/.secrets/fullstacked.env} for
 # STALWART_HEALTH_EMAIL / STALWART_HEALTH_PASSWORD; without them the
 # authenticated probes are skipped (WARN, not FAIL).
 # Usage: mail-health-check.sh [HTTP_BASE]
 set -u
 HTTP_BASE="${1:-http://172.18.0.1:1080}"
+ENV_FILE="${ENV_FILE:-$HOME/.secrets/fullstacked.env}"
 MAILHOST="mail.fullstacked.se"
 OK=$'\033[0;32m[OK]\033[0m'
 BAD=$'\033[0;31m[FAIL]\033[0m'
@@ -94,8 +95,8 @@ check_http mail.fullstacked.se       /                        302
 
 # --- 8. authenticated probes (fail-open if creds absent) --------------------
 HEALTH_EMAIL="" HEALTH_PASSWORD=""
-if [ -r /home/noor/.config/opencode/fullstacked.env ]; then
-  . /home/noor/.config/opencode/fullstacked.env
+if [ -r "$ENV_FILE" ]; then
+  . "$ENV_FILE"
   HEALTH_EMAIL="${STALWART_HEALTH_EMAIL:-}"
   HEALTH_PASSWORD="${STALWART_HEALTH_PASSWORD:-}"
 fi

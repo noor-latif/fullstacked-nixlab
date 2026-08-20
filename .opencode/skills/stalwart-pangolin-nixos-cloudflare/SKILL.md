@@ -17,7 +17,7 @@ Use this skill for work on Noor's mail setup:
 - TLS certs: **Stalwart built-in ACME** (DNS-01 via Cloudflare `DnsServer` object, `AcmeProvider` Let's Encrypt, `Dns01` challenge). No lego.
 - Outbound relay: Hostup `relay.hostup.se:587` (`MtaRoute/Relay` id `i31fgvcqacaa`), wired via `MtaOutboundStrategy` route: local-domain → `local`, else → `hostup`.
 
-Do not store or repeat secrets. Existing secrets for this setup are stored in `/home/noor/.config/opencode/fullstacked.env`; source that file instead of asking again if it exists.
+Do not store or repeat secrets. Existing secrets for this setup are stored in `/home/noor/.secrets/fullstacked.env`; source that file instead of asking again if it exists.
 
 ## Machine
 
@@ -147,6 +147,7 @@ What the repo does **not** reproduce (state that must be backed up separately):
 - `/var/lib/acme/` — lego DNS-01 credentials env file.
 - `/opt/pangolin/` — the entire Pangolin stack: Docker volumes, config.yml (with the live `server.secret` and integration API state), Traefik dynamic config, cert copies.
 - `/home/noor/.hermes/` — user-level Hermes install. `~/.hermes/runtime.toml` and the Git checkout could in principle be regenerated, but the gateway state, cron jobs, memories, kanban.db, response_store.db, and any customizations are lost.
+- `/home/noor/.secrets/fullstacked.env` — the ops secrets file (Cloudflare token, Pangolin token, Stalwart admin + health passwords, Clerk keys). Restore it with `chmod 700 ~/.secrets && chmod 600 ~/.secrets/fullstacked.env`.
 - Cloudflare zone state — DNS records (managed by the API, not stored locally) and the API token.
 - `/etc/ssh/ssh_host_*` — host keys. New VPS will get fresh ones; existing clients will need to re-trust or have `known_hosts` cleaned.
 - The Cloudflare API token for certs, stored at `/var/lib/acme/fullstacked-cloudflare.env`.
@@ -279,7 +280,7 @@ All of the following are **DB objects** (manage via `stalwart-cli` / webadmin / 
 - `AccountPassword/set` only changes the **authenticated user's own** password (object id `singleton`); it returns `notFound` for any other account id. To set another user's password, patch the `Account` object's `credentials` property instead.
 - `Account.credentials` is a **`Map<Id, Credential>`** (object keyed by credential id), NOT a list. Create form: `{"credentials":{"1":{"@type":"Password","secret":"<pw>"}}}`. A list value yields `invalidPatch: Invalid value for object property credentials`.
 - `SecretKey` values serialize as `{"@type":"Value","secret":"..."}` (e.g. for `DnsServer/Cloudflare.secret`).
-- Auth for JMAP/cli: `STALWART_URL=http://172.18.0.1:1080`, basic auth `admin@fullstacked.se` + admin password (from `/home/noor/.config/opencode/fullstacked.env`).
+- Auth for JMAP/cli: `STALWART_URL=http://172.18.0.1:1080`, basic auth `admin@fullstacked.se` + admin password (from `/home/noor/.secrets/fullstacked.env`).
 - The webadmin management API listens on `172.18.0.1:1080` (plain HTTP); Pangolin exposes it publicly as `mail.fullstacked.se` (SSO).
 
 ## Certificates
@@ -289,11 +290,11 @@ Strategy: **Stalwart built-in ACME**, DNS-01 via the Cloudflare `DnsServer` obje
 - `AcmeProvider i31clpvcaaqa` (Let's Encrypt, `Dns01`) + `DnsServer/Cloudflare i31eq2yuaaqa`.
 - Default cert `i31e2ujkabqa` (Let's Encrypt YE1), SANs `fullstacked.se` + `mail.fullstacked.se`, renewed by Stalwart's `AcmeRenewal` task (next ~2026-10-15).
 - **KNOWN GAP:** `mta-sts.fullstacked.se`, `autoconfig.fullstacked.se`, `autodiscover.fullstacked.se` are NOT in the cert SANs, so HTTPS to those hosts presents the default cert (hostname mismatch / self-signed fallback). To fix, add those hostnames to the Domain's `certificateManagement` SANs and trigger renewal. MTA-STS policy fetch currently fails for this reason.
-- Cloudflare API token for ACME: in `/home/noor/.config/opencode/fullstacked.env` (`CLOUDFLARE_API_TOKEN`).
+- Cloudflare API token for ACME: in `/home/noor/.secrets/fullstacked.env` (`CLOUDFLARE_API_TOKEN`).
 
 ## Cloudflare DNS
 
-Managed via API token (`Zone:Zone:Read`, `Zone:DNS:Edit` on `fullstacked.se`). All mail records must be DNS-only (not proxied). API token in `/home/noor/.config/opencode/fullstacked.env` as `CLOUDFLARE_API_TOKEN`.
+Managed via API token (`Zone:Zone:Read`, `Zone:DNS:Edit` on `fullstacked.se`). All mail records must be DNS-only (not proxied). API token in `/home/noor/.secrets/fullstacked.env` as `CLOUDFLARE_API_TOKEN`.
 
 DNS records: A (apex, mail), MX, SPF, Hostup auth TXT, DKIM TXT (2026a, 2026b), DMARC, MTA-STS policy TXT, TLSRPT TXT, SRV autoconfig records.
 
@@ -352,7 +353,7 @@ curl -sS -H 'Host: autoconfig.fullstacked.se' http://172.18.0.1:1080/mail/config
 Pangolin API:
 
 ```sh
-. /home/noor/.config/opencode/fullstacked.env
+. /home/noor/.secrets/fullstacked.env
 curl -sS -H "Authorization: Bearer $PANGOLIN_API_TOKEN" http://localhost:3003/v1/
 curl -sS -H "Authorization: Bearer $PANGOLIN_API_TOKEN" 'http://localhost:3003/v1/org/fullstacked/resources?pageSize=100'
 ```
@@ -400,4 +401,4 @@ The live copy at `~/.config/opencode/skills/stalwart-pangolin-nixos-cloudflare/S
 
 Never store: API token values, sudo passwords, Stalwart admin passwords, mailbox passwords, TLS private key contents. Store paths and variable names instead.
 
-Secrets location: `/home/noor/.config/opencode/fullstacked.env` (permissions: 600, parent: 700).
+Secrets location: `/home/noor/.secrets/fullstacked.env` (permissions: 600, parent: 700).

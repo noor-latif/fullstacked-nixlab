@@ -5,7 +5,7 @@
 Runtime tokens are intentionally not committed. On this server they live in:
 
 ```sh
-/home/noor/.config/opencode/fullstacked.env
+/home/noor/.secrets/fullstacked.env
 ```
 
 Expected variables:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ENV_FILE="${ENV_FILE:-$HOME/.config/opencode/fullstacked.env}"
+ENV_FILE="${ENV_FILE:-$HOME/.secrets/fullstacked.env}"
 # shellcheck disable=SC1090
 . "$ENV_FILE"
 
