@@ -1,4 +1,4 @@
-# This is an EXAMPLE configuration for running a Mox mail server on NixOS.
+# This is an EXAMPLE configuration for running the Stalwart mail server on NixOS.
 # Copy this file to configuration.nix and edit the values marked CHANGEME.
 #
 # Usage:
@@ -13,7 +13,7 @@
 {
   imports =
     [ ./hardware-configuration.nix
-      ../modules/mox
+      ../modules/stalwart
     ];
 
   # Bootloader — adjust for your hardware.
@@ -106,51 +106,31 @@
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  # --- Mox mail server ---
-  # See README.md for full documentation of all options.
+  # --- Stalwart mail server ---
+  # Stalwart config lives in its datastore (/var/lib/stalwart/config.json); the
+  # module only bootstraps the service and listeners. First boot starts a setup
+  # wizard on the webadmin HTTP listener.
   #
   # DNS prerequisites (add before switching MX):
   #   CAA records: 0 issue "letsencrypt.org" on domain, mail, mta-sts, autoconfig
   #   PTR/rDNS: your IP -> mail hostname (set at VPS provider)
   #   DNSSEC: enable at your registrar
-  services.mox-mail = {
+  services.stalwartSetup = {
     enable = true;
 
     # REQUIRED — set these to your values.
     hostname = "mail.example.com";          # e.g. mail.example.com
-    domain = "example.com";                # e.g. example.com
-    publicIps = [ "CHANGEME" ];            # e.g. [ "203.0.113.1" ]
-    adminAccount = "CHANGEME";             # Mox admin username (postmaster, DMARC, TLSRPT)
+    domain = "example.com";                 # e.g. example.com
+    adminAccount = "admin";                 # bootstrap admin account name
 
-    # Certificate settings.
-    certName = "mail";                     # Cert file prefix
-    certExtraDomains = [                    # Additional SAN domains on the cert.
-      "mta-sts.example.com"                # Remove or adjust as needed.
-      "autoconfig.example.com"
-    ];
+    # Management HTTP listener (webadmin + MTA-STS + autoconfig), proxied by
+    # Traefik/Pangolin. Set to the Docker bridge gateway if using a proxy stack.
+    webadminBind = "172.18.0.1:1080";
 
-    # Internal listener IPs.
-    # Add your Docker bridge IP (e.g. "172.18.0.1") if using Pangolin/Traefik.
-    internalIps = [ "127.0.0.1" "::1" ];
+    openFirewall = true;                    # open 25/465/993
 
-    acme = {
-      email = "admin@example.com";         # Let's Encrypt account email
-      # server = "letsencrypt-staging";    # Uncomment to test without rate limits
-      envFile = "/var/lib/acme/cloudflare.env";  # DNS API credentials
-      # Extra lego flags. Add "--ipv4only" if IPv6 causes LE reachability issues.
-      legoExtraFlags = [];
-    };
-
-    # SMTP relay for outbound mail (optional).
-    relay = {
-      enable = false;
-      # host = "relay.example.com";        # Uncomment and set if enabling relay
-    };
-
-    dkimSelectors = [ "CHANGEME" ];        # e.g. [ "2026a" ]
-
-    # Pangolin/Traefik reverse proxy integration (optional).
-    pangolin.enable = false;
+    # Optional: root:600 env file for a deterministic bootstrap admin password.
+    # recoveryAdminEnvFile = "/etc/stalwart-admin.env";
   };
 
   system.stateVersion = "26.05";

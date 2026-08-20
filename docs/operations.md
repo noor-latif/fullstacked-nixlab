@@ -17,14 +17,14 @@ PANGOLIN_API_TOKEN
 PANGOLIN_ORG_ID=fullstacked
 PANGOLIN_API_BASE=http://localhost:3003/v1
 PANGOLIN_CONTAINER=pangolin
-MOX_DOMAIN=fullstacked.se
-MOX_MAIL_HOST=mail.fullstacked.se
-MOX_PUBLIC_IPV4=143.14.50.130
+CF_DOMAIN=fullstacked.se
+CF_MAIL_HOST=mail.fullstacked.se
+CF_PUBLIC_IPV4=143.14.50.130
 HOSTUP_RELAY=relay.hostup.se
 HOSTUP_RELAY_PORT=587
 ```
 
-Do not put API tokens, Mox mailbox/admin passwords, ACME account keys, TLS private keys, or `/opt/pangolin/config/db` in git.
+Do not put API tokens, mailbox/admin passwords, ACME account keys, TLS private keys, or `/opt/pangolin/config/db` in git.
 
 ## Deploy NixOS Config
 
@@ -78,23 +78,4 @@ Set `PANGOLIN_SERVER_SECRET` in `pangolin/.env` to the live Pangolin-generated s
 openssl rand -hex 32
 ```
 
-Check current resources:
-
-```sh
-scripts/pangolin-reconcile-mox-resources.sh
-```
-
-## Mox
-
-Validate config:
-
-```sh
-sudo -u mox sh -c 'cd /var/lib/mox && mox -config config/mox.conf config test'
-```
-
-Start after TLS cert paths are real:
-
-```sh
-sudo systemctl start mox
-sudo systemctl status mox --no-pager
-```
+List Pangolin resources and targets via the integration API (see `config/openapi.yaml`):

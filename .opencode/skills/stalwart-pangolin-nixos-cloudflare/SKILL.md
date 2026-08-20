@@ -10,7 +10,7 @@ Use this skill for work on Noor's mail setup:
 - Domain: `fullstacked.se`
 - Mail hostname: `mail.fullstacked.se`
 - VPS OS: NixOS, flake at `/home/noor/dev/fullstacked-nixlab`
-- Mail server: **Stalwart 0.16.16** via the `services.stalwartSetup` module in `modules/stalwart/`. All config lives in the Stalwart **RocksDB datastore** under `/var/lib/stalwart/` (bootstrapped by `/var/lib/stalwart/config.json`). Migrated from Mox (commit `263f6ac`) and upgraded 0.15.5 → 0.16.x on 2026-08-16. Mox is gone.
+- Mail server: **Stalwart 0.16.16** via the `services.stalwartSetup` module in `modules/stalwart/`. All config lives in the Stalwart **RocksDB datastore** under `/var/lib/stalwart/` (bootstrapped by `/var/lib/stalwart/config.json`). Migrated to Stalwart 2026-08-16 (0.15.5 → 0.16.x) from an earlier Mox setup that has been fully removed.
 
 **`/var/lib/stalwart/config.json` is ONLY a RocksDB storage bootstrap** (its top-level keys are `@type`, `path`, `blobSize`, `bufferSize`, `poolWorkers`). It does NOT contain listener/server/http settings. The real config objects (listeners, domains, certs, ACME, DNS, relay, `SystemSettings`, `proxyTrustedNetworks`, etc.) are stored as RocksDB objects, managed via webadmin / `stalwart-cli` / JMAP (`x:`-namespaced methods). **`/etc/stalwart/stalwart.toml` is EMPTY/unused — never edit it; changes there do nothing.** To find the live `--config=` path: `systemctl cat stalwart.service`.
 - Reverse proxy: Pangolin/Gerbil/Traefik Docker stack in `/opt/pangolin`
@@ -186,7 +186,7 @@ Stalwart listeners on host:
 172.18.0.1:1080              Stalwart HTTP: webadmin + MTA-STS + autoconfig (plain HTTP, reverse proxied)
 ```
 
-No Mox `:81` listener anymore — MTA-STS and autoconfig are served by Stalwart's HTTP listener on 1080.
+MTA-STS and autoconfig are served by Stalwart's HTTP listener on 1080.
 
 Pangolin public HTTPS resources (mail-related):
 
@@ -212,10 +212,9 @@ modules/stalwart/
 Key points (from `modules/stalwart/default.nix`):
 
 - Do **not** name the module `services.stalwart-mail`: upstream registers a `mkRenamedOptionModule` that redirects the whole `services.stalwart-mail.*` subtree to `services.stalwart.*`, which would land custom options on non-existent paths. This module uses the distinct name `services.stalwartSetup`.
-- Listeners are implicit-TLS-only to match Mox: smtp `:25`, submissions `:465` (tlsImplicit), imaps `:993` (tlsImplicit), webadmin HTTP on `172.18.0.1:1080`.
+- Listeners are implicit-TLS-only: smtp `:25`, submissions `:465` (tlsImplicit), imaps `:993` (tlsImplicit), webadmin HTTP on `172.18.0.1:1080`.
 - TLS is wired via `server.tls.certificate = "default"` + `[certificate.default]` using the `%{file:...}%` macro (a literal path is treated as PEM content and implicit-TLS then serves plaintext). `certificate.*` and `server.tls.*` must be in `config.local-keys` for the macro to expand.
 - First-run admin bootstrap via `authentication.fallback-admin` (sha512-crypt hash from `adminPasswordHash`; generate with `mkpasswd -m sha-512 <pw>`).
-- `modules/mox/` still exists in the repo but is **not imported** and not active.
 
 ## Existing Services
 
