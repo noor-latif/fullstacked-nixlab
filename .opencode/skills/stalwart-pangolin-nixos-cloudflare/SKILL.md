@@ -271,7 +271,7 @@ All of the following are **DB objects** (manage via `stalwart-cli` / webadmin / 
 - `AcmeProvider` `i31clpvcaaqa`: Let's Encrypt, challenge `Dns01`.
 - `MtaRoute/Relay` `i31fgvcqacaa`: Hostup `relay.hostup.se:587`, protocol `smtp`, `implicitTls: false` (STARTTLS).
 - `MtaOutboundStrategy` route: `{"match":{"0":{"if":"is_local_domain(rcpt_domain)","then":"'local'"}},"else":"'hostup'"}`.
-- Account `c` = `noor@fullstacked.se` (User). Other accounts: `admin@fullstacked.se` (wizard).
+- Account `c` = `noor@fullstacked.se` (User). Other accounts: `admin@fullstacked.se` (wizard), `f` = `vcheck@fullstacked.se` (dedicated health-check account; used only by `scripts/mail-health-check.sh` auth probes, creds `STALWART_HEALTH_EMAIL`/`STALWART_HEALTH_PASSWORD` in `fullstacked.env`).
 
 ## JMAP scripting gotchas (Stalwart 0.16)
 
@@ -313,7 +313,9 @@ DS record values (if needed manually):
 
 `pkgs.openssl` and `pkgs.bind.dnsutils` are installed via `environment.systemPackages` in `modules/stalwart/default.nix` (added 2026-08-16, applied with `nixos-rebuild switch`). `jq` is NOT on the host — use `python3 -c 'import json,...'` for JSON parsing in shell.
 
-TLS + DNS sanity check script: `scripts/mail-tls-check.sh` (no args; defaults to `fullstacked.se` / `mail.fullstacked.se` / `143.14.50.130`). Checks STARTTLS cert on 25, implicit-TLS on 465/993, 443; warns if cert < 14 days; verifies Cloudflare MX/SPF/DMARC/MTA-STS/autoconfig/autodiscover. Run:
+TLS + DNS sanity check script: `scripts/mail-tls-check.sh` (no args; defaults to `fullstacked.se` / `mail.fullstacked.se` / `143.14.50.130`). Checks STARTTLS cert on 25, implicit-TLS on 465/993, 443; warns if cert < 14 days; verifies Cloudflare MX/SPF/DMARC/MTA-STS/autoconfig/autodiscover. Exits non-zero if any check FAILs. Run:
+
+Service health check: `scripts/mail-health-check.sh` — asserts service active, listeners (exact `sport` filter), no recovery-mode journal errors, SMTP banner+EHLO, TLS handshakes, IMAP NOOP, HTTP surfaces, and delegates to `mail-tls-check.sh`. If `STALWART_HEALTH_EMAIL`/`STALWART_HEALTH_PASSWORD` are set in `fullstacked.env` it also runs authenticated IMAP LOGIN (:993) + SMTP AUTH PLAIN (:465) as `vcheck@fullstacked.se`; without them those probes WARN and skip (fail-open). Exit 1 on any FAIL.
 
 ```sh
 /home/noor/dev/fullstacked-nixlab/scripts/mail-tls-check.sh
