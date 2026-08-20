@@ -177,9 +177,11 @@ in {
         trap 'rm -f "$tarball"' EXIT
         tar -czf "$tarball" -C ${stateDir} .
         ${pkgs.awscli2}/bin/aws --endpoint-url "$S3_ENDPOINT" s3 cp "$tarball" "s3://$S3_BUCKET/stalwart/$stampprefix.tar.gz"
-        # Prune to keep newest KEEP (default 7) backups.
+        # Keep a fixed "latest" pointer so restores don't need to list keys.
+        ${pkgs.awscli2}/bin/aws --endpoint-url "$S3_ENDPOINT" s3 cp "$tarball" "s3://$S3_BUCKET/stalwart/latest.tar.gz"
+        # Prune to keep newest KEEP (default 7) timestamped backups (latest.tar.gz is excluded).
         mapfile -t all < <(${pkgs.awscli2}/bin/aws --endpoint-url "$S3_ENDPOINT" s3 ls "s3://$S3_BUCKET/stalwart/" \
-          | awk '{print $4}' | sort -r)
+          | awk '$4 ~ /^stalwart-[0-9]+/ {print $4}' | sort -r)
         if [[ ''${#all[@]} -gt ''${KEEP:-7} ]]; then
           for f in "''${all[@]:''${KEEP:-7}}"; do
             ${pkgs.awscli2}/bin/aws --endpoint-url "$S3_ENDPOINT" s3 rm "s3://$S3_BUCKET/stalwart/$f"
