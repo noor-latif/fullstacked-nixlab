@@ -11,6 +11,7 @@
       ./swap.nix
       ../modules/stalwart
       ../modules/pangolin-bridge
+      ../modules/hindsight-backup
     ];
 
   # Bootloader.
@@ -229,4 +230,12 @@
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "26.05"; # Did you read the comment?
 
+  services.hindsightBackup = {
+    enable = true;
+    container = "hindsight";
+    s3Endpoint = "https://s3.hostup.se";
+    s3Bucket = "hindsight-backups";
+    s3Region = "eu-north-1";
+    keep = 7;
+  };
 }
