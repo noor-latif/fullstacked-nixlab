@@ -103,13 +103,21 @@ in {
 
     systemd.services.stalwart = {
       description = "Stalwart mail server (0.16)";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      # docker.service must be up first: the DB-configured webadmin listener
+      # binds the Pangolin bridge IP (172.18.0.1). If we start before the
+      # bridge exists, that bind fails silently and the process keeps running
+      # without HTTP (SMTP survives - it binds *). Seen 2026-08-21 after a
+      # reboot where stalwart started 6s before docker.
+      after = [ "network-online.target" "docker.service" ];
+      wants = [ "network-online.target" "docker.service" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         Type = "exec";
         ExecStart = "${pkgs.stalwart_0_16}/bin/stalwart --config=${configJson}";
+        # Never bounce a live MTA on nixos-rebuild switch; changes apply on
+        # next restart/reboot.
+        restartIfChanged = false;
         User = "stalwart";
         Group = "stalwart";
         StateDirectory = "stalwart";
@@ -169,7 +177,9 @@ in {
         NoNewPrivileges = true;
         RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
       };
-      path = [ pkgs.awscli2 pkgs.gnutar pkgs.gzip pkgs.coreutils ];
+      # gawk needed by the prune step below (missing => "awk: command not found",
+      # broken pipe, backups never pruned).
+      path = [ pkgs.awscli2 pkgs.gnutar pkgs.gzip pkgs.gawk pkgs.coreutils ];
       script = ''
         set -euo pipefail
         stampprefix="stalwart-$(date +%Y%m%d-%H%M%S)"
