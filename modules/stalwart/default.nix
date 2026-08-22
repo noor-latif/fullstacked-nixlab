@@ -112,12 +112,14 @@ in {
       wants = [ "network-online.target" "docker.service" ];
       wantedBy = [ "multi-user.target" ];
 
+      # Never bounce a live MTA on nixos-rebuild switch; changes apply on
+      # next restart/reboot. NOTE: unit-level option, NOT serviceConfig.*
+      # (systemd rejects "restartIfChanged" inside [Service]).
+      restartIfChanged = false;
+
       serviceConfig = {
         Type = "exec";
         ExecStart = "${pkgs.stalwart_0_16}/bin/stalwart --config=${configJson}";
-        # Never bounce a live MTA on nixos-rebuild switch; changes apply on
-        # next restart/reboot.
-        restartIfChanged = false;
         User = "stalwart";
         Group = "stalwart";
         StateDirectory = "stalwart";
