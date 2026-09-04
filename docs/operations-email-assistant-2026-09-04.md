@@ -97,3 +97,47 @@ tail ~/email-assistant-triage.log
 - VacationResponse get/set available (currently disabled).
 - Undo: immediate local sends go `final` instantly; cancel only works
   while `pending` (held/queued). No Gmail-style grace window locally.
+
+## Push listener (live 2026-09-04)
+
+`email-assistant.py listen` + `email-assistant-listen.service`
+(`Restart=always`). Primary path now; triage timer dropped to hourly fallback.
+
+- Stream: `GET /jmap/eventsource/?types=*&closeafter=no&ping=30`,
+  `Accept: text/event-stream`. On `StateChange` for account `c`
+  (dedupe identical consecutive states) it logs a triage snapshot.
+- Streams are per-principal: admin auth only yields admin-account events.
+  The stream uses noor's app password from the overlay file below;
+  API reads stay on admin auth (works cross-account).
+- App password: minted via `x:AppPassword/set` on account `c`
+  (`description: email-assistant listener`), stored ONLY in
+  `~/.secrets/email-assistant.env` (`JMAP_USER`/`JMAP_PASSWORD`, 600).
+  Never in git/chat. Revoke: `x:AppPassword/destroy` (or webadmin).
+
+```ini
+# ~/.config/systemd/user/email-assistant-listen.service
+[Unit]
+Description=Email push listener (JMAP EventSource)
+After=network-online.target
+[Service]
+Type=simple
+ExecStart=%h/.nix-profile/bin/python3 %h/dev/fullstacked-nixlab/scripts/email-assistant.py listen
+StandardOutput=append:/home/noor/email-assistant-push.log
+StandardError=inherit
+Restart=always
+RestartSec=5
+[Install]
+WantedBy=default.target
+```
+
+## Sieve management (in script, inactive by default)
+
+```sh
+python3 scripts/email-assistant.py sieve-list [account]
+python3 scripts/email-assistant.py sieve-put <name> <file.sieve> [--active] [account]
+python3 scripts/email-assistant.py sieve-del <id> [account]
+```
+
+Upload is `Content-Type: application/sieve` to `/jmap/upload/<account>/`,
+then `SieveScript/set`. No active rules yet (inbox empty); activate one
+only when real mail shows what needs filing.
