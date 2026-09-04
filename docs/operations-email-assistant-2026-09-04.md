@@ -82,3 +82,18 @@ tail ~/email-assistant-triage.log
 - No digest/nudge logic yet; triage only reports counts (inbox empty).
 - `mail.fullstacked.se` Pangolin resource keeps `sso=True`; public JMAP
   would need a separate `sso=False` host — deferred (tailnet is enough).
+
+## Probed, not yet wired (2026-09-04)
+
+- EventSource push works: `GET /jmap/eventsource/?types=*&closeafter=no&ping=5`
+  with `Accept: text/event-stream` -> `200`, `state` events for
+  Mailbox/Email changes arrive in seconds. (`closeafter` takes
+  `state`|`no`, not seconds.) Path to event-driven: a lightweight
+  listener service over `ssh -L` instead of 15-min polling.
+- Sieve via JMAP works: blob upload (`Content-Type: application/sieve`)
+  -> `SieveScript/set {name, blobId, isActive}`; create-inactive/get/
+  destroy cycle verified. 100 scripts max, `fileinto` etc. available.
+  Enables server-side auto-filing instead of client cron.
+- VacationResponse get/set available (currently disabled).
+- Undo: immediate local sends go `final` instantly; cancel only works
+  while `pending` (held/queued). No Gmail-style grace window locally.
