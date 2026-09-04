@@ -35,7 +35,13 @@ for spec in "25:smtp" "465:" "993:"; do
   fi
 done
 days=$(tls_cert_days "$DOMAIN" 443)
-if [ -z "$days" ]; then echo "$BAD  $DOMAIN:443  no cert"; FAILED=1; else
+if [ -z "$days" ]; then
+  if timeout 5 bash -c "echo > /dev/tcp/$DOMAIN/443" 2>/dev/null; then
+    echo "$BAD  $DOMAIN:443  port open but TLS handshake failed"; FAILED=1
+  else
+    echo "$WARN  $DOMAIN:443  no listener (no site published on apex?)"
+  fi
+else
   if [ "$days" -lt "$WARN_DAYS" ]; then echo "$WARN  $DOMAIN:443  cert expires in $days days"; else
     echo "$OK  $DOMAIN:443  cert valid ($days days)"; fi
 fi
