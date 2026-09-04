@@ -29,6 +29,12 @@ future release is requested via `envelope.mailFrom.parameters.HOLDUNTIL`.
 Verified: +2min send released on time with correct From. Cancel via
 `EmailSubmission/set update {id: {undoStatus: canceled}}`.
 
+Track pending sends without storing ids (built-in, per RFC 8621 SS7.3):
+`EmailSubmission/query {"filter": {"undoStatus": "pending"}}`
+(also `before`/`after` on `sendAt`). IDs are stable server handles:
+sequences increment, destroyed ids stay `notFound` (verified:
+`biaaaaak/bmaaaaal/bqaaaaam/buaaaaan` across create-destroy cycles).
+
 ## Timer install (already active; reproduce with)
 
 ```ini
