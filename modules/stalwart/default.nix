@@ -155,7 +155,7 @@ in {
       };
     };
 
-    networking.firewall.allowedTCPPorts = lib.optionals cfg.openFirewall [ 25 465 993 ];
+    networking.firewall.allowedTCPPorts = lib.optionals cfg.openFirewall [ 25 465 993 995 ];
 
     environment.systemPackages = [
       pkgs.stalwart_0_16

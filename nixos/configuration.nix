@@ -12,6 +12,7 @@
       ../modules/stalwart
       ../modules/pangolin-bridge
       ../modules/hindsight-backup
+      ../modules/traefik-watchdog
     ];
 
   # Bootloader.
@@ -81,6 +82,7 @@
 
   environment.shellAliases = {
     apply = "/home/noor/dev/fullstacked-nixlab/scripts/apply-nixos.sh";
+    upgrade = "/home/noor/dev/fullstacked-nixlab/scripts/upgrade-nixos.sh";
   };
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -229,6 +231,8 @@
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "26.05"; # Did you read the comment?
+
+  services.traefikWatchdog.enable = true;
 
   services.hindsightBackup = {
     enable = true;
