@@ -310,44 +310,73 @@ print(json.dumps(new, separators=(',',':')))
       --password) PASS="$2"; shift 2;;
       *) EMAIL="$1"; shift;;
     esac; done
-    [[ -n "$EMAIL" ]] || die "need --email (and --password or ~/.secrets/*)"
-    if [[ -z "$PASS" ]]; then
-      # Try to find password in ~/.secrets files
-      for f in "$HOME/.secrets"/*gotaland* "$HOME/.secrets"/*fullstacked* "$HOME/.secrets/mailboxes.txt"; do
-        [[ -r "$f" ]] || continue
-        if grep -q "$EMAIL" "$f" 2>/dev/null; then
-          PASS=$(grep "$EMAIL" "$f" | head -1 | cut -d: -f2 | cut -d= -f2 | tr -d ' "')
-          [[ -n "$PASS" ]] && break
-        fi
-        # also check env style
-        if grep -q "PASSWORD" "$f" 2>/dev/null && grep -q "${EMAIL%%@*}" "$f" 2>/dev/null; then
-          PASS=$(grep PASSWORD "$f" | cut -d= -f2 | tr -d ' "')
-          [[ -n "$PASS" ]] && break
-        fi
-      done
-    fi
-    [[ -n "$PASS" ]] || die "password not found for $EMAIL — pass --password or ensure ~/.secrets/hej-gotalandstrafikskola.env etc. exists"
+    [[ -n "$EMAIL" ]] || die "need --email (and optional --password)"
     python3 - "$EMAIL" "$PASS" <<'PY'
-import imaplib, ssl, sys, email
-from email.header import decode_header
-email_addr=sys.argv[1]
-pw=sys.argv[2]
-ctx=ssl.create_default_context()
-M=imaplib.IMAP4_SSL("mail.fullstacked.se",993,ssl_context=ctx)
+import glob, os, re, sys, ssl, imaplib
+
+email_addr = sys.argv[1]
+pw = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else ""
+
+if not pw:
+    secrets_dir = os.path.expanduser("~/.secrets")
+    mb_file = os.path.join(secrets_dir, "mailboxes.txt")
+    if os.path.isfile(mb_file):
+        with open(mb_file) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith(email_addr + ":"):
+                    pw = line.split(":", 1)[1].strip()
+                    break
+
+if not pw:
+    secrets_dir = os.path.expanduser("~/.secrets")
+    for env_path in sorted(glob.glob(os.path.join(secrets_dir, "*.env"))):
+        try:
+            with open(env_path) as f:
+                env_lines = f.readlines()
+        except OSError:
+            continue
+        env_vars = {}
+        for line in env_lines:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            env_vars[k.strip()] = v.strip().strip("'\"")
+        matching_keys = [k for k, v in env_vars.items() if v.lower() == email_addr.lower()]
+        for mk in matching_keys:
+            prefix = re.sub(r"_(EMAIL|USER)$", "", mk, flags=re.IGNORECASE)
+            for cand in [f"{prefix}_PASSWORD", f"{prefix}_PASS", "PASSWORD", "PASS", "JMAP_PASSWORD"]:
+                if cand in env_vars and env_vars[cand]:
+                    pw = env_vars[cand]
+                    break
+            if not pw:
+                pw_keys = [k for k in env_vars if "PASSWORD" in k]
+                if len(pw_keys) == 1:
+                    pw = env_vars[pw_keys[0]]
+            if pw:
+                break
+        if pw:
+            break
+
+if not pw:
+    sys.exit(f"ERROR: password not found for {email_addr} in ~/.secrets — pass --password")
+
+ctx = ssl.create_default_context()
+M = imaplib.IMAP4_SSL("mail.fullstacked.se", 993, ssl_context=ctx)
 M.login(email_addr, pw)
 M.select("INBOX")
-typ,data=M.search(None,"ALL")
-ids=data[0].split()
+typ, data = M.search(None, "ALL")
+ids = data[0].split()
 print(f"INBOX {email_addr}: {len(ids)} total")
-# Show last 5
 for i in ids[-5:]:
-    typ,d=M.fetch(i,"(ENVELOPE RFC822.HEADER)")
-    # Use ENVELOPE for quick view, fallback
+    typ, d = M.fetch(i, "(BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE)])")
     try:
-        env=d[0][1].decode(errors='ignore')
-        print("---", i.decode(), env[:800].replace("\r","").replace("\n"," | "))
-    except:
-        print(d)
+        hdr = d[0][1].decode(errors="ignore").replace("\r", "").strip()
+        hdr_lines = [l.strip() for l in hdr.split("\n") if l.strip()]
+        print(f"--- #{i.decode()}: " + " | ".join(hdr_lines))
+    except Exception:
+        print("---", i.decode(), d)
 M.logout()
 PY
     ;;
