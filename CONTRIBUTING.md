@@ -26,7 +26,7 @@ Examples:
 ```text
 chore(nixos): track mail server baseline
 
-Capture the current NixOS and Pangolin configuration so the VPS can be
+Capture the current NixOS and reverse-proxy configuration so the VPS can be
 rebuilt from git without committing runtime secrets.
 ```
 

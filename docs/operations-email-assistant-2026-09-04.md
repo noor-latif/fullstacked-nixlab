@@ -80,8 +80,7 @@ tail ~/email-assistant-triage.log
 
 - Draft command is create+destroy proof only; composing real drafts is next.
 - No digest/nudge logic yet; triage only reports counts (inbox empty).
-- `mail.fullstacked.se` Pangolin resource keeps `sso=True`; public JMAP
-  would need a separate `sso=False` host — deferred (tailnet is enough).
+- `mail.fullstacked.se` is a plain Caddy `reverse_proxy` to Stalwart (no SSO layer since the 2026-09 Pangolin decommission); public JMAP is directly reachable — deferred (tailnet is enough).
 
 ## Probed, not yet wired (2026-09-04)
 

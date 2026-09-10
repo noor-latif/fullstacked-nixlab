@@ -42,7 +42,7 @@ ssh wp-gotaland ~/gotalandstrafikskola-wp/migration/fluent-wire.sh --email hej@g
 
 - `~/.secrets/hostup.env` (HOSTUP_API_KEY + ID apikey_06g1j...), also appended to `fullstacked.env`
 - `~/.secrets/noor-gotalandstrafikskola.env` (noor mailbox), `hej-gotalandstrafikskola.env` (hej, 62433dab...), `wordpress-gotaland.env`
-- `~/.secrets/fullstacked.env` (admin, Cloudflare, Pangolin, HOSTUP_API_KEY)
+- `~/.secrets/fullstacked.env` (admin, Cloudflare, HOSTUP_API_KEY; legacy Pangolin tokens unused)
 
 ## Gotchas (updated 2026-08-30)
 

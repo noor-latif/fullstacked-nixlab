@@ -19,7 +19,7 @@
 ## Immediate Next Steps (Actionable)
 1. **Interactive Triage Testing with OMP** — Trigger OMP in terminal or at `omp.latif.se` with an unstructured brain dump (e.g. *"Schedule 1h curriculum review tomorrow at 2 PM and remind me to renew passport by Friday"*), verify events land in Apple Calendar and tasks land in Apple Reminders.
 2. **Weekly Morning Review Prompt** — Define a recurring OMP trigger/alias (or shell alias `morning`) invoking `stalwart-assistant summary --json` and synthesizing a 3-point focus plan for the day.
-3. **Pangolin Decommissioning** — Once full DNS migration to HostUp and all private/public Caddy endpoints have stabilized, prune legacy Pangolin Docker containers and bridge firewall module per planned maintenance.
+3. **Pangolin Decommissioning — DONE 2026-09-10** — Containers already gone; removed `pangolin/` compose stack, `modules/traefik-watchdog`, renamed `pangolin-bridge` module/option/chain to `bridge-ports` (rules still load-bearing). Caddy (user service) is the reverse proxy. MTA-STS/autoconfig hosts currently unserved (no Caddy route) — re-add if wanted.
 
 ## Known Traps & Gotchas
 - **Apple CalDAV 307 Rejection:** Apple iOS/macOS CalDAV setup rejects HTTP 307 Temporary Redirects on `/.well-known/caldav` with a cryptic *"CalDAV account verification failed"*. Caddy must return HTTP 301.

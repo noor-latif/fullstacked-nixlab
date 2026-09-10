@@ -13,10 +13,10 @@ Expected variables:
 ```sh
 CLOUDFLARE_API_TOKEN
 CLOUDFLARE_ZONE_NAME=fullstacked.se
-PANGOLIN_API_TOKEN
-PANGOLIN_ORG_ID=fullstacked
-PANGOLIN_API_BASE=http://localhost:3003/v1
-PANGOLIN_CONTAINER=pangolin
+PANGOLIN_API_TOKEN (legacy, unused since 2026-09 decommission)
+PANGOLIN_ORG_ID=fullstacked (legacy, unused)
+PANGOLIN_API_BASE=http://localhost:3003/v1 (legacy, unused)
+PANGOLIN_CONTAINER=pangolin (legacy, unused)
 CF_DOMAIN=fullstacked.se
 CF_MAIL_HOST=mail.fullstacked.se
 CF_PUBLIC_IPV4=143.14.50.130
@@ -24,7 +24,7 @@ HOSTUP_RELAY=relay.hostup.se
 HOSTUP_RELAY_PORT=587
 ```
 
-Do not put API tokens, mailbox/admin passwords, ACME account keys, TLS private keys, or `/opt/pangolin/config/db` in git.
+Do not put API tokens, mailbox/admin passwords, ACME account keys, or TLS private keys in git.
 
 ## Deploy NixOS Config
 
@@ -62,20 +62,15 @@ Apply base records:
 scripts/cloudflare-upsert-fullstacked-dns.sh
 ```
 
-## Pangolin
+## Caddy (replaces Pangolin since 2026-09)
 
-Pangolin runs from `/opt/pangolin` with Docker Compose. The tracked config files are templates/snapshots; keep secrets out of tracked copies.
-
-Before first deploy from a fresh clone:
-
-```sh
-cp pangolin/.env.example pangolin/.env
-```
-
-Set `PANGOLIN_SERVER_SECRET` in `pangolin/.env` to the live Pangolin-generated server secret from the existing installation, or generate a new one for a brand-new deployment:
+Pangolin/Traefik/Gerbil were decommissioned in September 2026 and removed from this repo
+(`pangolin/` compose stack, `modules/traefik-watchdog`). The reverse proxy is user-space Caddy:
 
 ```sh
-openssl rand -hex 32
+/home/noor/.nix-profile/bin/caddy run --config /home/noor/.config/caddy/config.json
 ```
 
-List Pangolin resources and targets via the integration API (see `config/openapi.yaml`):
+The Caddy config is live state, NOT tracked in git — back up `/home/noor/.config/caddy/config.json`
+separately. Validate before reload: `caddy validate --config <file>`, then `systemctl --user reload caddy`.
+`mail.fullstacked.se` reverse-proxies to Stalwart HTTP at `127.0.0.1:41209`.
