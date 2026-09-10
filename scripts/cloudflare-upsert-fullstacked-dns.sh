@@ -12,7 +12,6 @@ if [[ "${ALLOW_STALE_CF:-}" != "1" ]]; then
   exit 1
 fi
 
-#!/usr/bin/env bash
 set -euo pipefail
 
 ENV_FILE="${ENV_FILE:-$HOME/.secrets/fullstacked.env}"
