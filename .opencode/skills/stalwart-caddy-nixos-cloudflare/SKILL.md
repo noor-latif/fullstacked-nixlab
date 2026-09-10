@@ -272,9 +272,11 @@ Strategy: **Stalwart built-in ACME**, DNS-01 via the Cloudflare `DnsServer` obje
 - **KNOWN GAP:** `mta-sts.fullstacked.se`, `autoconfig.fullstacked.se`, `autodiscover.fullstacked.se` are NOT in the cert SANs, and Caddy serves no route for those hosts at all (Pangolin used to). MTA-STS policy fetch currently fails for both reasons. To fix: add Caddy routes for those hosts AND add the hostnames to the Domain's `certificateManagement` SANs with a renewal.
 - Cloudflare API token for ACME: in `/home/noor/.secrets/fullstacked.env` (`CLOUDFLARE_API_TOKEN`).
 
-## Cloudflare DNS
+## Cloudflare DNS → HostUp DNS (authority moved 2026-09)
 
-Managed via API token (`Zone:Zone:Read`, `Zone:DNS:Edit` on `fullstacked.se`). All mail records must be DNS-only (not proxied). API token in `/home/noor/.secrets/fullstacked.env` as `CLOUDFLARE_API_TOKEN`.
+Authoritative nameservers are now `primary`/`secondary.ns.hostup.se` (check `dig NS`). Manage via HostUp MCP (`https://cloud.hostup.se/mcp`, Bearer `HOSTUP_API_KEY`): `tools/call list_dns_records` (needs `id` in the JSON-RPC envelope; `recordType` filter 403s — list unfiltered and filter client-side) and `manage_dns_record` (create/update/delete, TXT content raw without quotes, TTL 300 matches zone convention). NOTE: HostUp MCP rejects python-urllib's User-Agent — use curl or set a browser UA.
+The Cloudflare zone is STALE (kept for the ACME DNS-01 token only) but remains the backup copy of the TXT set — the 2026-09 migration dropped all 11 TXT records and they had to be re-created from Cloudflare values (SPF apex+mail, DMARC, MTA-STS, DKIM 2026a/2026b + v1-ed25519, TLSRPT x2, _hostup). Retired `v1-rsa` (423 chars, exceeds one TXT string) was intentionally NOT restored — rotation retired it. After any future DNS migration, run `scripts/mail-tls-check.sh` and diff TXT against this list.
+All mail A records must be DNS-only (not proxied). API tokens in `/home/noor/.secrets/fullstacked.env` (`CLOUDFLARE_API_TOKEN`, `HOSTUP_API_KEY`).
 
 DNS records: A (apex, mail), MX, SPF, Hostup auth TXT, DKIM TXT (2026a, 2026b), DMARC, MTA-STS policy TXT, TLSRPT TXT, SRV autoconfig records.
 

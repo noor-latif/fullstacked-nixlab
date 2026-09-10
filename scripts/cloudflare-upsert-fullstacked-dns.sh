@@ -1,4 +1,18 @@
 #!/usr/bin/env bash
+#
+# DEPRECATED TARGET (2026-09-10): DNS authority for fullstacked.se moved to
+# HostUp (primary/secondary.ns.hostup.se). This script still writes to the
+# STALE Cloudflare zone (kept for ACME DNS-01 + as TXT backup). It aborts
+# unless ALLOW_STALE_CF=1 is set. Manage live DNS via HostUp MCP
+# (https://cloud.hostup.se/mcp, tools/call list_dns_records/manage_dns_record).
+if [[ "${ALLOW_STALE_CF:-}" != "1" ]]; then
+  echo "ABORT: fullstacked.se DNS authority is HostUp, not Cloudflare." >&2
+  echo "This script would write to the stale Cloudflare zone. Set ALLOW_STALE_CF=1 to proceed anyway," >&2
+  echo "or manage live DNS via HostUp MCP (see skill stalwart-caddy-nixos-cloudflare)." >&2
+  exit 1
+fi
+
+#!/usr/bin/env bash
 set -euo pipefail
 
 ENV_FILE="${ENV_FILE:-$HOME/.secrets/fullstacked.env}"
