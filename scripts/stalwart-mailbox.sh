@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # Config
-STALWART_URL="${STALWART_URL:-http://172.18.0.1:1080}"
+STALWART_URL="${STALWART_URL:-http://127.0.0.1:41209}"
 SECRETS_FILE="${HOME}/.secrets/fullstacked.env"
 if [[ -r "$SECRETS_FILE" ]]; then
   # shellcheck disable=SC1090
@@ -86,14 +86,14 @@ _update_aliases() {
 
 usage() {
   cat <<'USAGE'
-stalwart-mailbox.sh — Stalwart admin helper (nixlab, http://172.18.0.1:1080)
+stalwart-mailbox.sh — Stalwart admin helper (nixlab, http://127.0.0.1:41209)
 
 Commands:
   list-domains                          List all domains (id, name)
   list-accounts                         List all accounts (id, email, name)
   get <email|id>                        Show account details (stalwart-cli get account)
   domain-zone <domain>                  Show desired DNS zone for domain (get domain)
-  create --domain <d> --user <u> --password <p> [--name "Full"] [--locale sv_SE]
+  create --domain <d> --user <u> --password <p> [--name "Full"] [--locale sv-SE]
                                         Create mailbox u@d (handles domainId, credentials map)
   update-password --email <e> --password <p>
                                         Update mailbox password (credentials map gotcha)
@@ -118,7 +118,7 @@ Examples:
   stalwart-mailbox.sh check-mail --email noor@gotalandstrafikskola.se
   stalwart-mailbox.sh health
 
-Gotchas: credentials/aliases are MAPS {0:{...}} not arrays; 0.16.17 JMAP is http://172.18.0.1:1080/jmap plain HTTP.
+Gotchas: credentials/aliases are MAPS {0:{...}} not arrays; locale is dash-form (sv-SE, en-US); JMAP is http://127.0.0.1:41209/jmap plain HTTP.
 USAGE
 }
 
@@ -147,7 +147,7 @@ case "$cmd" in
     stalwart-cli get domain "$(domain_id_for "$1")"
     ;;
   create)
-    DOMAIN=""; USER=""; PASS=""; NAME=""; LOCALE="sv_SE"
+    DOMAIN=""; USER=""; PASS=""; NAME=""; LOCALE="sv-SE"
     while [[ $# -gt 0 ]]; do case "$1" in
       --domain) DOMAIN="$2"; shift 2;;
       --user) USER="$2"; shift 2;;
@@ -161,9 +161,8 @@ case "$cmd" in
     EMAIL="${USER}@${DOMAIN}"
     EXIST=$(account_id_for "$EMAIL")
     if [[ -n "$EXIST" ]]; then die "account $EMAIL already exists (id $EXIST) — use update-password or delete"; fi
-    set -x
+    echo "Creating $EMAIL (domainId $DID, locale $LOCALE)..."
     stalwart-cli create Account/User       --field name="$USER"       --field domainId="$DID"       --field locale="$LOCALE"       --field "description=$NAME"       --field "credentials={\"0\":{\"@type\":\"Password\",\"secret\":\"$PASS\"}}"       --field 'aliases={}'       --field 'encryptionAtRest={"@type":"Disabled"}'       --field 'permissions={"@type":"Inherit"}'       --field 'roles={"@type":"User"}'       --field 'memberGroupIds={}'       --field 'quotas={}'
-    set +x
     echo "Created $EMAIL — verify: stalwart-mailbox.sh get $EMAIL"
     mkdir -p "$HOME/.secrets"
     echo "$EMAIL:$PASS" >> "$HOME/.secrets/mailboxes.txt"
