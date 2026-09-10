@@ -8,7 +8,7 @@
 # authenticated probes are skipped (WARN, not FAIL).
 # Usage: mail-health-check.sh [HTTP_BASE]
 set -u
-HTTP_BASE="${1:-http://172.18.0.1:1080}"
+HTTP_BASE="${1:-http://127.0.0.1:41209}"
 ENV_FILE="${ENV_FILE:-$HOME/.secrets/fullstacked.env}"
 MAILHOST="mail.fullstacked.se"
 OK=$'\033[0;32m[OK]\033[0m'
@@ -25,7 +25,7 @@ else
 fi
 
 # --- 2. listeners (exact port filter, rendering-independent) ---------------
-for spec in "*:25 smtp" "*:465 submissions" "*:993 imaps" "172.18.0.1:1080 webadmin"; do
+for spec in "*:25 smtp" "*:465 submissions" "*:993 imaps" "*:41209 http"; do
   listen="${spec%% *}"; label="${spec##* }"
   addr="${listen%:*}"; port="${listen##*:}"
   out=$(ss -ltn -H "sport = :$port" 2>/dev/null) || true
@@ -85,7 +85,7 @@ fi
 # --- 7. HTTP surfaces served by Stalwart -----------------------------------
 check_http() { # host path expected-code
   local host="$1" path="$2" want="$3" code
-  code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Host: $host" "$HTTP_BASE$path" 2>/dev/null)
+  code=$(curl -sS --max-time 10 -o /dev/null -w '%{http_code}' -H "Host: $host" "$HTTP_BASE$path" 2>/dev/null)
   if [ "$code" = "$want" ]; then echo "$OK  $host$path  -> $code"; else
     echo "$BAD  $host$path  -> $code (expected $want)"; FAILED=1; fi
 }
