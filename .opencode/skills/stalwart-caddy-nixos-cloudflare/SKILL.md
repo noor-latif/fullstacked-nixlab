@@ -266,12 +266,13 @@ All of the following are **DB objects** (manage via `stalwart-cli` / webadmin / 
 
 ## Certificates
 
-Strategy: **Stalwart built-in ACME**, DNS-01 via the Cloudflare `DnsServer` object. No lego.
+Strategy: **Stalwart built-in ACME. DNS-01 via Cloudflare is BROKEN since the 2026-09 DNS migration** (authority moved to HostUp; LE follows delegation, so CF-written `_acme-challenge` TXT is invisible). Cert `i31e2ujkabqa` expires 2026-11-14; renewal (~mid-Oct) WILL FAIL unless migrated. Do NOT rely on it silently — verify after any change with `scripts/mail-tls-check.sh` (cert age) and re-check before 2026-10-15.
 
-- `AcmeProvider i31clpvcaaqa` (Let's Encrypt, `Dns01`) + `DnsServer/Cloudflare i31eq2yuaaqa`.
+- `AcmeProvider i31clpvcaaqa` (Let's Encrypt, `Dns01`) + `DnsServer/Cloudflare i31eq2yuaaqa` (legacy, keep until the new path renews once, then delete).
+- **Migration path (chosen 2026-09-10): DNS-01 via DeSEC challenge delegation.** Stalwart has no HostUp provider; HTTP-01 is impossible (Caddy reserves `/.well-known/acme-challenge/*` for its own ACME — user routes for that path never fire, verified: 308 + `looking up info for HTTP challenge` in Caddy log); TLS-ALPN-01 needs port 443 which is Caddy's. So: free DeSEC account → API token into `~/.secrets/fullstacked.env` as `DESEC_API_TOKEN` (user adds it by hand over ssh, never via chat) → `DnsServer/DeSEC` object in Stalwart → CNAME `_acme-challenge.<each SAN>` to the DeSEC-served name → LE follows the CNAME, Stalwart writes TXT via DeSEC. Then confirm one renewal, delete the Cloudflare `DnsServer` object.
 - Default cert `i31e2ujkabqa` (Let's Encrypt YE1), SANs `fullstacked.se` + `mail.fullstacked.se`, renewed by Stalwart's `AcmeRenewal` task (next ~2026-10-15).
-- **KNOWN GAP:** `mta-sts.fullstacked.se`, `autoconfig.fullstacked.se`, `autodiscover.fullstacked.se` are NOT in the cert SANs, and Caddy serves no route for those hosts at all (Pangolin used to). MTA-STS policy fetch currently fails for both reasons. To fix: add Caddy routes for those hosts AND add the hostnames to the Domain's `certificateManagement` SANs with a renewal.
-- Cloudflare API token for ACME: in `/home/noor/.secrets/fullstacked.env` (`CLOUDFLARE_API_TOKEN`).
+- **KNOWN GAP:** `mta-sts`/`autoconfig`/`autodiscover` are NOT in the cert SANs, and Caddy serves no route for those hosts — MTA-STS policy fetch fails for both reasons. To fix: add Caddy routes AND add the hostnames to the Domain's `certificateManagement` SANs with a renewal (after the DeSEC migration, so the renewal actually works).
+- Cloudflare API token for (legacy) ACME: in `/home/noor/.secrets/fullstacked.env` (`CLOUDFLARE_API_TOKEN`).
 
 ## Cloudflare DNS → HostUp DNS (authority moved 2026-09)
 
