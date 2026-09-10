@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration for the fullstacked.se mail/infra stack (Stalwart + Pangolin)";
+  description = "NixOS configuration for the fullstacked.se mail/infra stack (Stalwart + Caddy)";
 
   inputs = {
     # Track a single, current nixpkgs. nixos-unstable carries modern packages
@@ -10,7 +10,7 @@
   };
 
   outputs = { nixpkgs, ... }: {
-    nixosModules.pangolin-bridge = ./modules/pangolin-bridge;
+    nixosModules.bridge-ports = ./modules/bridge-ports;
 
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";

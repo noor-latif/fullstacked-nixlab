@@ -41,7 +41,7 @@ in {
     webadminBind = lib.mkOption {
       type = lib.types.str;
       default = "172.18.0.1:1080";
-      description = "Address:port for the Stalwart management HTTP listener (proxied by Traefik/Pangolin for mail.fullstacked.se)";
+      description = "Address:port for the Stalwart management HTTP listener (proxied by Caddy for mail.fullstacked.se)";
     };
 
     openFirewall = lib.mkOption {
@@ -103,11 +103,11 @@ in {
 
     systemd.services.stalwart = {
       description = "Stalwart mail server (0.16)";
-      # docker.service must be up first: the DB-configured webadmin listener
-      # binds the Pangolin bridge IP (172.18.0.1). If we start before the
-      # bridge exists, that bind fails silently and the process keeps running
-      # without HTTP (SMTP survives - it binds *). Seen 2026-08-21 after a
-      # reboot where stalwart started 6s before docker.
+      # docker.service must be up first: a DB-configured HTTP listener may bind
+      # the Docker bridge gateway (172.18.0.1). If we start before the bridge
+      # exists, that bind fails silently and the process keeps running without
+      # HTTP (SMTP survives - it binds *). Seen 2026-08-21 after a reboot where
+      # stalwart started 6s before docker.
       after = [ "network-online.target" "docker.service" ];
       wants = [ "network-online.target" "docker.service" ];
       wantedBy = [ "multi-user.target" ];

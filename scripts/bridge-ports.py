@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Pangolin bridge-port helper.
+"""Docker bridge-port helper.
 
-Appends host ports (reachable ONLY via the Docker bridge / Pangolin) to
-data/bridge-ports.json so the pangolin-bridge firewall module opens them.
-This is the mechanism referenced by modules/pangolin-bridge/firewall.nix
-(the `pangolin-create.py --persist` flow). Idempotent: a port already
+Appends host ports (reachable ONLY via the Docker bridge) to
+data/bridge-ports.json so the bridge-ports firewall module opens them.
+This is the mechanism referenced by modules/bridge-ports/firewall.nix
+(the `bridge-ports.py --persist-port` flow). Idempotent: a port already
 present is left untouched and the file is not rewritten.
 
 Usage:
-    scripts/pangolin-create.py --persist-port 1080
-    scripts/pangolin-create.py --persist-port 8080 --persist-port 9000
+    scripts/bridge-ports.py --persist-port 1080
+    scripts/bridge-ports.py --persist-port 8080 --persist-port 9000
 """
 
 import argparse

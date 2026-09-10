@@ -10,9 +10,8 @@
       ./hardware-configuration.nix
       ./swap.nix
       ../modules/stalwart
-      ../modules/pangolin-bridge
+      ../modules/bridge-ports
       ../modules/hindsight-backup
-      ../modules/traefik-watchdog
     ];
 
   # Bootloader.
@@ -124,14 +123,14 @@
     enable = true;
     allowedTCPPorts = [ 80 443 ];
     allowedUDPPorts = [ 51820 21820 ];
-    # Host services reachable via the Docker bridge (Pangolin/Traefik) are
-    # opened by the pangolin-bridge module, which reads data/bridge-ports.json
-    # at build time — see modules/pangolin-bridge/firewall.nix.
+    # Host services reachable via the Docker bridge are
+    # opened by the bridge-ports module, which reads data/bridge-ports.json
+    # at build time — see modules/bridge-ports/firewall.nix.
     # The Camofox browser container (docker0 bridge) must reach local dev
     # servers (bayt-hub dev on :3001). Scoped to docker0 + port only; the
     # matching extraStopCommands keeps the rule idempotent across activations
     # (the bare-extraCommands accumulation pitfall documented in
-    # modules/pangolin-bridge/firewall.nix).
+    # modules/bridge-ports/firewall.nix).
     extraStopCommands = ''
       iptables -w -D nixos-fw -i docker0 -p tcp --dport 3001 -j ACCEPT 2>/dev/null || true
     '';
@@ -140,7 +139,7 @@
     '';
   };
 
-  services.pangolin-bridge.enable = true;
+  services.bridge-ports.enable = true;
   security.sudo.wheelNeedsPassword = true;
   security.sudo.extraRules = [
     {
@@ -232,7 +231,8 @@
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "26.05"; # Did you read the comment?
 
-  services.traefikWatchdog.enable = true;
+  # traefikWatchdog removed 2026-09-10: Pangolin/Traefik/Gerbil decommissioned,
+  # Caddy (user service) is the reverse proxy. Module deleted.
 
   services.hindsightBackup = {
     enable = true;

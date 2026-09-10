@@ -124,7 +124,7 @@
     adminAccount = "admin";                 # bootstrap admin account name
 
     # Management HTTP listener (webadmin + MTA-STS + autoconfig), proxied by
-    # Traefik/Pangolin. Set to the Docker bridge gateway if using a proxy stack.
+    # Caddy. Set to the Docker bridge gateway if using a proxy stack.
     webadminBind = "172.18.0.1:1080";
 
     openFirewall = true;                    # open 25/465/993
