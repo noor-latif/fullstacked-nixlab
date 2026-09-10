@@ -185,6 +185,7 @@ Caddy public HTTPS routes (mail-related, in `/home/noor/.config/caddy/config.jso
 
 ```text
 mail.fullstacked.se       -> 127.0.0.1:41209   — webadmin + JMAP (reverse_proxy; no SSO layer)
+fullstacked.se            -> static 404        — apex hosts nothing (added 2026-09-10 so TLS handshakes succeed; stale Oracle A 207.127.89.124 deleted same day)
 ```
 `mta-sts`/`autoconfig`/`vpn` A records still point at the VPS but Caddy serves no route for them (Pangolin used to) — MTA-STS policy over HTTPS is currently unserved. Re-add Caddy routes if it is wanted.
 Firewall: 25, 465, 993 opened by the Stalwart module. Bridge-scoped container ports opened via `bridge-ports` (reads `data/bridge-ports.json`).
