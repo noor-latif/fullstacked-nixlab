@@ -1,6 +1,6 @@
 ---
 name: stalwart-caddy-nixos-cloudflare
-description: Use when working on the mail stack on fullstacked.se — the Stalwart mail server, Caddy reverse proxy, Cloudflare DNS/DNSSEC, or the NixOS modules that configure them. Triggers on Stalwart, mail server, mail.fullstacked.se, MTA-STS, autoconfig, DKIM, DMARC, lego certs, Caddy, Cloudflare, or fullstacked-nixlab.
+description: Use when working on the mail stack on fullstacked.se — the Stalwart mail server, Caddy reverse proxy, Cloudflare DNS/DNSSEC, or the NixOS modules that configure them. Triggers on Stalwart, mail server, mail.fullstacked.se, MTA-STS, autoconfig, DKIM, DMARC, Caddy, Cloudflare, or fullstacked-nixlab.
 ---
 
 # Stalwart + Caddy + NixOS + Cloudflare
@@ -14,7 +14,7 @@ Use this skill for work on Noor's mail setup:
 
 **`/var/lib/stalwart/config.json` is ONLY a RocksDB storage bootstrap** (its top-level keys are `@type`, `path`, `blobSize`, `bufferSize`, `poolWorkers`). It does NOT contain listener/server/http settings. The real config objects (listeners, domains, certs, ACME, DNS, relay, `SystemSettings`, `proxyTrustedNetworks`, etc.) are stored as RocksDB objects, managed via webadmin / `stalwart-cli` / JMAP (`x:`-namespaced methods). **`/etc/stalwart/stalwart.toml` is EMPTY/unused — never edit it; changes there do nothing.** To find the live `--config=` path: `systemctl cat stalwart.service`.
 - Reverse proxy: user-space **Caddy** (`/home/noor/.nix-profile/bin/caddy run --config /home/noor/.config/caddy/config.json`). Pangolin/Traefik/Gerbil were decommissioned 2026-09; `/opt/pangolin` is gone and no pangolin/gerbil/traefik containers run.
-- TLS certs: **Stalwart built-in ACME** (DNS-01 via Cloudflare `DnsServer` object, `AcmeProvider` Let's Encrypt, `Dns01` challenge). No lego.
+- TLS certs: **Stalwart built-in ACME** (DNS-01; Cloudflare provider broken since the DNS move, DeSEC migration planned — see Certificates). Lego is a different project: its `hostup` provider (v5.0.0) can't plug into Stalwart's built-in client.
 - Outbound relay: Hostup `relay.hostup.se:587` (`MtaRoute/Relay` id `i31fgvcqacaa`), wired via `MtaOutboundStrategy` route: local-domain → `local`, else → `hostup`.
 
 Do not store or repeat secrets. Existing secrets for this setup are stored in `/home/noor/.secrets/fullstacked.env`; source that file instead of asking again if it exists.
@@ -142,12 +142,10 @@ What the repo reproduces from a fresh clone:
 What the repo does **not** reproduce (state that must be backed up separately):
 
 - `/var/lib/stalwart/` — rocksdb data (`db/`), `config/tls/` (certs + DKIM keys), webadmin principals. This is the mailbox + account state.
-- `/var/lib/stalwart-lego/` — lego/ACME account state, so the next cert renewal does not need a fresh registration.
-- `/var/lib/acme/` — lego DNS-01 credentials env file.
 - `/home/noor/.config/caddy/config.json` — the live Caddy config (NOT in git; back it up separately).
 - `/home/noor/.secrets/fullstacked.env` — the ops secrets file (Cloudflare token, Stalwart admin + health passwords, Clerk keys; legacy Pangolin tokens unused). Restore it with `chmod 700 ~/.secrets && chmod 600 ~/.secrets/fullstacked.env`.
 - `/etc/ssh/ssh_host_*` — host keys. New VPS will get fresh ones; existing clients will need to re-trust or have `known_hosts` cleaned.
-- The Cloudflare API token for certs, stored at `/var/lib/acme/fullstacked-cloudflare.env`.
+- The Cloudflare API token for (legacy) ACME lives in `/home/noor/.secrets/fullstacked.env` (`CLOUDFLARE_API_TOKEN`). (`/var/lib/acme/` — minica-era lego state — was deleted 2026-09-10, backup in `~/backups/orphaned-20260910/`.)
 
 Practical new-VPS recovery, in order:
 
@@ -155,15 +153,15 @@ Practical new-VPS recovery, in order:
 2. Bootstrap NixOS on the new VPS via Hostup's installer. During install, set up `noor` with an SSH key you can reach.
 3. `git clone https://github.com/noor-latif/fullstacked-nixlab.git /home/noor/dev/fullstacked-nixlab` and `cd` there.
 4. `apply`. This sets up system services. Stalwart will start with a fresh `/var/lib/stalwart/db`.
-5. Restore state from backup: `/var/lib/stalwart/`, `/var/lib/stalwart-lego/`, `/var/lib/acme/`, `/home/noor/.config/caddy/config.json`. Restart Stalwart (`systemctl restart stalwart`), reload Caddy.
+5. Restore state from backup: `/var/lib/stalwart/`, `/home/noor/.config/caddy/config.json`. Restart Stalwart (`systemctl restart stalwart`), reload Caddy.
 6. The Docker bridge gateway IP `172.18.0.1` is assigned by Docker; if it changed on the new VPS, update `data/bridge-ports.json` consumers and Caddy upstreams that dial it.
-7. Update Cloudflare: change the `mail.fullstacked.se` A record to the new VPS IP. Re-run `scripts/cloudflare-upsert-fullstacked-dns.sh` if any other records are stale.
+7. Update HostUp DNS: change the `mail.fullstacked.se` A record to the new VPS IP (HostUp MCP `manage_dns_record`; Cloudflare is stale — do not edit there).
 8. Update Hostup: PTR/rDNS for the new IP. SPF `include:spf.hostup.se` is unchanged because it is the relay's SPF, not yours. DKIM selectors are unchanged.
 9. Reinstall Hermes: `curl -fsSL hermes-agent.nousresearch.com/install.sh | bash`, then restore `~/.hermes/` (excluding the venv, which can be rebuilt). Add git, uv, python311, nodejs_22 to the user nix profile.
 
 **To get closer to "git clone + switch = up"**, the next work is:
 
-- A `scripts/backup-prod-state.sh` that tarballs `/var/lib/stalwart`, `/var/lib/stalwart-lego`, `/var/lib/acme`, `/home/noor/.config/caddy/config.json`, `/home/noor/.hermes` (sans venv). Run nightly via cron, ship to Backblaze B2 or similar.
+- A `scripts/backup-prod-state.sh` that tarballs `/var/lib/stalwart`, `/home/noor/.config/caddy/config.json`, `/home/noor/.hermes` (sans venv). Run nightly via cron, ship to Backblaze B2 or similar.
 - Move the Cloudflare token into a passphrase-encrypted file in the repo, decrypted by a small bootstrap script at apply time.
 
 This is real work, not a one-line fix. Tell me if you want to start on it.
@@ -196,7 +194,7 @@ The repo contains a reusable NixOS module at `modules/stalwart/`:
 
 ```
 modules/stalwart/
-  default.nix          ← options (services.stalwartSetup) + listeners + TLS + lego timer + tmpfiles
+  default.nix          ← options (services.stalwartSetup) + listeners + TLS + S3 backup
 ```
 
 Key points (from `modules/stalwart/default.nix`):
