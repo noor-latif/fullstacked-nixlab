@@ -1,23 +1,20 @@
-# Session Handoff — 2026-09-11
+# Session Handoff — 2026-09-11 (proxy cutover)
 
 ## Completed Work
-- [x] Revived `nixlab.latif.se` + `laptop.latif.se` (were blank `200 0`: resolving but routeless) via `subscale up <name> 8787` on NixLab.
-- [x] Retired `omp.latif.se`: `subscale down`, deleted HostUp A+AAAA. `nixlab.latif.se` is its replacement (same backend).
-- [x] Moved `laptop.latif.se` onto the laptop: explicit HostUp A+AAAA → `100.112.233.33`/`fd7a:115c:a1e0::2b2f:e922`; local Caddy owns `:443` on TS IPs with SNI (`laptop` → ompweb `:8787`, tailnet name → devproxy `:30180`); `tailscale serve --https=443` off; sysctl unprivileged ports persisted.
-- [x] Fixed `baytdev.latif.se` (public-IP 404 → repointed to tailnet, now 307).
-- [x] Deleted redundant explicit records (cv/cv-api/vault/baytdev): wildcard covers them. Verified all endpoints.
-- [x] Patched NixLab `lego-hostup-hook.py` with browser User-Agent (Cloudflare 1010 was 403ing it).
-- [x] Minted managed skill `tailnet-private-routing` with the full runbook.
+- [x] `laptop.latif.se` now proxied by NixLab Caddy (`subscale up laptop.latif.se 100.112.233.33:8787`); deleted its last explicit A+AAAA. DNS is 100% wildcard for private names.
+- [x] Laptop de-elevated: removed local Caddy `:443`/SNI + `/var/lib/caddy/certs`; tailnet hostname served by new user unit `tailscale-serve.service` (foreground-`serve` quirk, `Restart=always`).
+- [x] Earlier: retired `omp.latif.se`, fixed `baytdev` 404, removed redundant cv/cv-api/vault/baytdev records, UA-patched `lego-hostup-hook.py`.
+- [x] Managed skill `tailnet-private-routing` rewritten to proxy design + serve quirk + don'ts.
 
 ## Current State & Verification
-- `curl`: cv 200/120K, vault 200/23K, blogg 200/23K, baytdev 307, nixlab 200/11K, laptop `/login` 200/15K, cv-api 404-normal, omp blank-200 (retired).
-- Working tree (`/tmp/fullstacked-nixlab`): clean (docs/handoff only, no code changes).
+- `curl`: laptop/login 200/15K (via NixLab proxy), nixlab 200/11K, tailnet hostname 200/65K, cv/vault/blogg 200, baytdev 307, cv-api 404-normal.
+- `tailscale serve status` reports nothing (build quirk) — traffic-proven serving; the systemd unit is source of truth.
+- `/tmp/fullstacked-nixlab` working tree: dirty (this handoff file only).
 
 ## Immediate Next Steps (Actionable)
-1. **Laptop wildcard cert expires 2026-12-07** — re-sync `/var/lib/caddy/certs/wildcard.*` on latif from NixLab `/home/noor/.secrets/certs/lego/certificates/` (or automate).
-2. **Laptop `tailscale cert` (~90d)** — re-issue for `latif.rohu-mirach.ts.net` into `/var/lib/caddy/certs/ts.*` (caddy-owned), reload Caddy via `:2019`.
-3. **Do NOT re-add explicit DNS** for NixLab-bound names or AAAA for `cv-api` — wildcard covers; see skill.
+1. **Renewal debts GONE** (no laptop cert copies left). Remaining: NixLab LE wildcard auto-renews via lego timer (hook UA-patched).
+2. If NixLab goes down, `laptop.latif.se` dies with it (accepted tradeoff) — direct-serving rollback = re-add explicit DNS + local Caddy SNI (see skill history).
 
 ## Known Traps & Gotchas
-- HostUp MCP 403/1010 = missing browser User-Agent (urllib default blocked). Every caller must set one.
-- Caddy `200 0` = resolvable but routeless; tiny 404 = DNS hitting the public listener. Diagnose in that order.
+- `tailscale serve` foreground quirk (see skill). Never run load-bearing serve from a shell.
+- HostUp MCP needs browser User-Agent; Caddy `200 0` = routeless; tiny 404 = public-listener hit.
