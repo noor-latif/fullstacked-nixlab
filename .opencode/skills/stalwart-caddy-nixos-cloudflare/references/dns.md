@@ -13,7 +13,12 @@ Registrar for `fullstacked.se` is Hostup AB (also the VPS provider).
   exported 2026-09-11: 5 A, 1 AAAA, 4 CNAME, 1 MX, 7 SRV, 10 TXT; SOA+apex NS
   omitted; TTL unified 3600 = DeSEC floor; retired `v1-rsa` DKIM intentionally
   absent).
-- HostUp DNS is now legacy. If ever needed: HostUp MCP
+- `dnsManagement` on the Stalwart Domain is currently **Automatic** against the
+  Cloudflare `DnsServer` (writes land in the stale zone — live-safe, renewal
+  broken). At the DeSEC cutover, point the Domain at the DeSEC object AND
+  decide Manual vs Automatic: verify first whether Automatic would overwrite
+  the relay-include SPF (`v=spf1 mx include:spf.hostup.se -all`) — do not
+  assume. See `certificates.md`.
   (`https://cloud.hostup.se/mcp`, Bearer `HOSTUP_API_KEY`) via
   `scripts/hostup-mcp.sh` — e.g. `hostup-mcp.sh list_dns_records
   '{"zone":"fullstacked.se"}'`. Envelope REQUIRES `id`; `recordType` filter

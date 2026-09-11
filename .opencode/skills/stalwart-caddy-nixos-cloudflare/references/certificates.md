@@ -8,7 +8,8 @@ task — no external client, no hooks, no restarts.
 - `DnsServer/Cloudflare i31eq2yuaaqa` — LEGACY. Was the challenge writer while
   Cloudflare held a (stale) zone. Delete after the DeSEC path renews once.
 - Default cert `i31e2ujkabqa` (Let's Encrypt YE1), SANs `fullstacked.se` +
-  `mail.fullstacked.se`, expiry 2026-11-14, renewal ~mid-Oct.
+  `mail.fullstacked.se` + `mta-sts`/`autoconfig`/`autodiscover` (all five on
+  the Domain object, verified 2026-09-11), expiry 2026-11-14, renewal ~mid-Oct.
 - `SecretKey` values serialize as `{"@type":"Value","secret":"..."}`.
 
 ## Why DeSEC (decided 2026-09-10/11, evidence in skill history)
@@ -19,8 +20,8 @@ task — no external client, no hooks, no restarts.
   own ACME — verified 308); TLS-ALPN-01 needs port 443, which is Caddy's.
 - CNAME-delegation to a DeSEC child zone is IMPOSSIBLE — verified in Stalwart
   source: `order.rs` writes `_acme-challenge.<domain>` literally, and
-  `dns-update/desec.rs` `discover_domain` only walks UP to parent zones.
-  DeSEC must be authoritative. No exceptions.
+  `dns-update/desec.rs` `discover_domain` only walks UP — a DeSEC-hosted
+  child zone can never receive the write.
 - Rejected: external lego (nixpkgs ships 4.x, `hostup` provider needs 5.0.0;
   plus cert-import-plus-restart glue per renewal), Stalwart-native HostUp
   driver (upstream issue `stalwartlabs/stalwart#3310`, filed 2026-09-11).
@@ -29,9 +30,3 @@ task — no external client, no hooks, no restarts.
 
 `scripts/mail-tls-check.sh` (cert age; warns <14 days). Re-check before expiry.
 
-## Known gap
-
-`mta-sts`/`autoconfig`/`autodiscover` are NOT in the cert SANs, and Caddy
-serves no route for those hosts. To fix: add Caddy routes AND add the hostnames
-to the Domain's `certificateManagement` SANs with a renewal (only after the
-DeSEC path works, so the renewal actually succeeds).
