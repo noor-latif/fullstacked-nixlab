@@ -37,7 +37,8 @@ if [[ "$1" == "list" ]]; then
 fi
 
 TOOL="$1"
-ARGS="${2:-{}}"
+ARGS="${2-}"
+if [[ -z "$ARGS" ]]; then ARGS="{}"; fi
 ID=$((RANDOM % 100000 + 1))
 TOOL_NAME="$TOOL" TOOL_ARGS="$ARGS" TOOL_ID="$ID" python3 -c "import json,os; print(json.dumps({'jsonrpc':'2.0','id':int(os.environ['TOOL_ID']),'method':'tools/call','params':{'name':os.environ['TOOL_NAME'],'arguments':json.loads(os.environ['TOOL_ARGS'])}}))" | {
 read -r PAYLOAD
