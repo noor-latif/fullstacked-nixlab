@@ -1,27 +1,23 @@
-# Session Handoff — 2026-09-08 15:45 UTC
+# Session Handoff — 2026-09-11
 
 ## Completed Work
-- [x] **Caddy CalDAV & IPv6 Routing:** Added 301 permanent redirects for `/.well-known/caldav` and `/.well-known/carddav` to `/home/noor/.config/caddy/config.json` on NixLab, added `[2a13:7c82:111:2d::]:443` IPv6 listener, loaded `mail.fullstacked.se` TLS certificate, and reloaded Caddy via API (`127.0.0.1:2019/load`).
-- [x] **iOS CalDAV Synchronization:** Verified native Apple Calendar and Apple Reminders sync with Stalwart account `noor@fullstacked.se`.
-- [x] **Disaster Recovery / Snapper:** Configured Btrfs Snapper on laptop for `/home` with 12 hourly and 30 daily snapshots (`TIMELINE_LIMIT_DAILY="30"`), created initial baseline snapshot #1 (`baseline-safety-net`).
-- [x] **Unified Life Assistant CLI:** Created `scripts/stalwart-assistant.py` (Python stdlib-only) combining JMAP email triage, draft, send, schedule, sieve with JMAP Calendar event management and CalDAV VTODO task management.
-- [x] **Binary & PATH Integration:** Symlinked `stalwart-assistant` into `~/.local/bin/stalwart-assistant` on both laptop and NixLab.
-- [x] **OMP Skill Minting:** Created managed skill `stalwart-assistant` at `managed-skills/stalwart-assistant/SKILL.md`.
-- [x] **Git Synchronization:** Committed and pushed all changes to `main` at commit `e121703` on `noor-latif/fullstacked-nixlab`.
+- [x] Revived `nixlab.latif.se` + `laptop.latif.se` (were blank `200 0`: resolving but routeless) via `subscale up <name> 8787` on NixLab.
+- [x] Retired `omp.latif.se`: `subscale down`, deleted HostUp A+AAAA. `nixlab.latif.se` is its replacement (same backend).
+- [x] Moved `laptop.latif.se` onto the laptop: explicit HostUp A+AAAA → `100.112.233.33`/`fd7a:115c:a1e0::2b2f:e922`; local Caddy owns `:443` on TS IPs with SNI (`laptop` → ompweb `:8787`, tailnet name → devproxy `:30180`); `tailscale serve --https=443` off; sysctl unprivileged ports persisted.
+- [x] Fixed `baytdev.latif.se` (public-IP 404 → repointed to tailnet, now 307).
+- [x] Deleted redundant explicit records (cv/cv-api/vault/baytdev): wildcard covers them. Verified all endpoints.
+- [x] Patched NixLab `lego-hostup-hook.py` with browser User-Agent (Cloudflare 1010 was 403ing it).
+- [x] Minted managed skill `tailnet-private-routing` with the full runbook.
 
 ## Current State & Verification
-- **Repository:** `/home/noor/dev/infra/fullstacked-nixlab`
-- **Branch / Commit:** `main` at `e121703`
-- **Working Tree:** Clean (zero untracked, zero modified files)
-- **Tests & Build:** Passing (`stalwart-assistant summary` returns 0 with clean output on both laptop and NixLab)
-- **Disaster Recovery:** Snapper config `home` active with active systemd timers `snapper-timeline.timer` and `snapper-cleanup.timer`.
+- `curl`: cv 200/120K, vault 200/23K, blogg 200/23K, baytdev 307, nixlab 200/11K, laptop `/login` 200/15K, cv-api 404-normal, omp blank-200 (retired).
+- Working tree (`/tmp/fullstacked-nixlab`): clean (docs/handoff only, no code changes).
 
 ## Immediate Next Steps (Actionable)
-1. **Interactive Triage Testing with OMP** — Trigger OMP in terminal or at `omp.latif.se` with an unstructured brain dump (e.g. *"Schedule 1h curriculum review tomorrow at 2 PM and remind me to renew passport by Friday"*), verify events land in Apple Calendar and tasks land in Apple Reminders.
-2. **Weekly Morning Review Prompt** — Define a recurring OMP trigger/alias (or shell alias `morning`) invoking `stalwart-assistant summary --json` and synthesizing a 3-point focus plan for the day.
-3. **Pangolin Decommissioning — DONE 2026-09-10** — Containers already gone; removed `pangolin/` compose stack, `modules/traefik-watchdog`, renamed `pangolin-bridge` module/option/chain to `bridge-ports` (rules still load-bearing). Caddy (user service) is the reverse proxy. MTA-STS/autoconfig hosts currently unserved (no Caddy route) — re-add if wanted.
+1. **Laptop wildcard cert expires 2026-12-07** — re-sync `/var/lib/caddy/certs/wildcard.*` on latif from NixLab `/home/noor/.secrets/certs/lego/certificates/` (or automate).
+2. **Laptop `tailscale cert` (~90d)** — re-issue for `latif.rohu-mirach.ts.net` into `/var/lib/caddy/certs/ts.*` (caddy-owned), reload Caddy via `:2019`.
+3. **Do NOT re-add explicit DNS** for NixLab-bound names or AAAA for `cv-api` — wildcard covers; see skill.
 
 ## Known Traps & Gotchas
-- **Apple CalDAV 307 Rejection:** Apple iOS/macOS CalDAV setup rejects HTTP 307 Temporary Redirects on `/.well-known/caldav` with a cryptic *"CalDAV account verification failed"*. Caddy must return HTTP 301.
-- **IPv6-First Handshake:** iPhones on cellular/Wi-Fi use Happy Eyeballs and prioritize IPv6 AAAA records. Caddy's public listener must explicitly listen on `[2a13:7c82:111:2d::]:443` as well as IPv4 `143.14.50.130:443`.
-- **JMAP Tasks vs CalDAV VTODO:** Stalwart 0.16 supports `urn:ietf:params:jmap:calendars` natively for events, but does not yet implement the draft JMAP Tasks capability. Task/Reminder management is executed via CalDAV `VTODO` over HTTP PUT/REPORT/DELETE on `/dav/cal/noor%40fullstacked.se/default/`.
+- HostUp MCP 403/1010 = missing browser User-Agent (urllib default blocked). Every caller must set one.
+- Caddy `200 0` = resolvable but routeless; tiny 404 = DNS hitting the public listener. Diagnose in that order.
