@@ -12,8 +12,8 @@
 - Nix rules: `nix.settings.*` lists need `lib.mkForce` (else merged/duplicated
   in nix.conf). `nix-command`+`flakes` forced on; verify with
   `nix show-config | head -3`.
-- Hermes is user-space (`~/.hermes`, gateway unit, port 8642, lingering on) —
-  NOT part of the flake. Never reintroduce `services.hermes-agent`/Cachix.
+- Hermes: REMOVED from this host (was user-space `~/.hermes`, gateway unit port
+  8642). Never reintroduce `services.hermes-agent`/Cachix or reinstall it.
 - `git push` breakage: per-URL credential helper in `~/.gitconfig` points at a
   gc'd `/nix/store/...gh...` path. Workaround: single-command `insteadOf`
   rewrite with token from `~/.config/gh/hosts.yml` (`oauth_token`). Real fix:
