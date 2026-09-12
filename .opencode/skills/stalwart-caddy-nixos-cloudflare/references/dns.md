@@ -23,8 +23,10 @@ Registrar for `fullstacked.se` is Hostup AB (also the VPS provider).
   `scripts/hostup-mcp.sh` — e.g. `hostup-mcp.sh list_dns_records
   '{"zone":"fullstacked.se"}'`. Envelope REQUIRES `id`; `recordType` filter
   403s (list unfiltered, filter client-side); TXTs raw without quotes.
-- Cloudflare zone is STALE — never edit there. Guard script
-  `scripts/cloudflare-upsert-fullstacked-dns.sh` aborts without `ALLOW_STALE_CF=1`.
+- DS auto-removal on NS change per KB #832118; SmartDNSSEC Sync re-adds DeSEC
+  DS after mandatory 24h block per KB #958624 (portal confirmed 2026-09-11:
+  "blocked until Sep 12, 2026, 21:04", NS changed Sep 11 21:04). User chose
+  automatic path; manual fallback below only if Sync hasn't acted by ~Sep 13.
 
 ## Record conventions
 
