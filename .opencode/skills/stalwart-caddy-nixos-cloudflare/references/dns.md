@@ -38,6 +38,23 @@ Registrar for `fullstacked.se` is Hostup AB (also the VPS provider).
   against the zonefile (SPF×2, DMARC, MTA-STS, DKIM 2026a/2026b + ed25519,
   TLSRPT×2, `_hostup`).
 
+## Cutover runbook (starts at the watcher's SUCCESS mail)
+
+Goal: Stalwart DNS-01 renewals via DeSEC, then remove every Cloudflare trace.
+1. Verify chain: `dig NS fullstacked.se +short` = DeSEC pair,
+   `dig DS fullstacked.se +short` shows tag `56980`, Zonemaster green.
+2. Decide DNS-management mode FIRST (SPF + DKIM): either Automatic→DeSEC
+   (prove on a scratch TXT that it doesn't clobber the relay-include SPF)
+   or Manual + a DKIM-sync job (Stalwart rotates DKIM ~90d; static DeSEC
+   copies go stale and break signing — see certificates flow + DKIM note).
+3. Create `DnsServer/DeSEC` (webadmin via `ssh -L 41209:127.0.0.1:41209
+   nixlab`, Management → DNS, provider DeSEC, token = `DESEC_API_TOKEN`),
+   then Domains → `fullstacked.se` → DNS provider = DeSEC.
+4. Force-proof the path: add/remove a scratch TXT through the new provider,
+   then confirm one real renewal (~mid-Oct; `scripts/mail-tls-check.sh`).
+5. Cleanup only after a renewal succeeds: delete the Cloudflare `DnsServer`
+   object, `systemctl --user disable --now desec-watch.timer`, optionally
+   delete the stale Cloudflare zone (dashboard, user's hand).
 ## DNSSEC
 
 - `.se` parent had signed delegation (HostUp SmartDNSSEC). On NS change the old
